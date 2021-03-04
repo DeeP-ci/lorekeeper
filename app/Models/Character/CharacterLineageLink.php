@@ -6,7 +6,7 @@ use App\Models\Model;
 
 use App\Models\Character\Character;
 
-class CharacterLineage extends Model
+class CharacterLineageLink extends Model
 {
     /**
      * The attributes that are mass assignable.
@@ -25,12 +25,12 @@ class CharacterLineage extends Model
     protected $table = 'character_lineage_links';
 
     /**
-     * Gets this character's (the child) lineage.
+     * Gets this character's (the child's) lineage.
      * @return App\Models\Character\CharacterLineage
      */
     public function child()
     {
-        return $this->belongsTo('App\Models\Character\CharacterLineage', "id", "lineage_id");
+        return $this->belongsTo('App\Models\Character\CharacterLineage', "lineage_id", "id");
     }
 
     /**
@@ -39,6 +39,6 @@ class CharacterLineage extends Model
      */
     public function parent()
     {
-        return $this->belongsTo('App\Models\Character\CharacterLineage', "id", "parent_lineage_id");
+        return $this->belongsTo('App\Models\Character\CharacterLineage', "parent_lineage_id", "id");
     }
 }

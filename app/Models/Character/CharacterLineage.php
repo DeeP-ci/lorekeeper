@@ -30,7 +30,7 @@ class CharacterLineage extends Model
      */
     public function character()
     {
-        return $this->belongsTo('App\Models\Character\Character', "id", "character_id");
+        return $this->belongsTo('App\Models\Character\Character', "character_id", "id");
     }
 
     /**
@@ -39,7 +39,7 @@ class CharacterLineage extends Model
      */
     public function parents()
     {
-        return $this->hasMany('App\Models\Character\CharacterLineageLinks', "lineage_id", "id");
+        return $this->hasMany('App\Models\Character\CharacterLineageLink', "lineage_id", "id");
     }
 
     /**
@@ -48,7 +48,7 @@ class CharacterLineage extends Model
      */
     public function children()
     {
-        return $this->hasMany('App\Models\Character\CharacterLineageLinks', "parent_lineage_id", "id");
+        return $this->hasMany('App\Models\Character\CharacterLineageLink', "parent_lineage_id", "id");
     }
 
     /**
@@ -57,7 +57,7 @@ class CharacterLineage extends Model
      */
     public function getNameAttribute()
     {
-        if($this->character) return $this->character()->getFullNameAttribute();
+        if($this->character) return $this->character->full_name;
         return (!$this->character_name) ? "Unknown" : $this->character_name;
     }
 
@@ -68,7 +68,7 @@ class CharacterLineage extends Model
     public function getUrlAttribute()
     {
         if($this->character) return $this->character->url;
-        return url('lineage/'.$this->id);
+        return url('rogue/'.$this->id);
     }
 
     /**
