@@ -18,6 +18,8 @@ use Illuminate\Support\Arr;
 use App\Models\User\User;
 use App\Models\User\UserItem;
 use App\Models\Character\Character;
+use App\Models\Character\CharacterLineage;
+use App\Models\Character\CharacterLineageLink;
 use App\Models\Character\CharacterCurrency;
 use App\Models\Character\CharacterCategory;
 use App\Models\Character\CharacterFeature;
@@ -132,6 +134,9 @@ class CharacterManager extends Service
             $character->character_image_id = $image->id;
             $character->save();
 
+            // LINEAGE
+            $lineage = $this->handleCharacterLineage($data, $character);
+
             // Add a log for the character
             // This logs all the updates made to the character
             $this->createLog($user->id, null, $recipientId, $url, $character->id, $isMyo ? 'MYO Slot Created' : 'Character Created', 'Initial upload', 'character');
@@ -214,6 +219,42 @@ class CharacterManager extends Service
             $this->setError('error', $e->getMessage());
         }
         return false;
+    }
+
+    /**
+     * Handles character lineage data.
+     *
+     * @param  array                            $data
+     * @return \App\Models\Character\Character  $character
+     * @return \App\Models\Character\CharacterLineage|bool
+     */
+    private function handleCharacterLineage($data, $character)
+    {
+        $lineage = CharacterLineage::create(['character_id' => $character->id]);
+
+
+        // Attatch the Lineage Links
+        foreach($data['parent_type'] as $key => $type) {
+            $parentLineage = false;
+            if($type == "Character") {
+                // Finds the first character that is not a myo slot with the ID specified.
+                $parent = Character::where('is_myo_slot', false)->where('id', $data['parent_data'][$key])->first();
+                $parentLineage = (!$parent) ? false : ((!$parent->lineage) ? CharacterLineage::create(['character_id' => $parent->id]) : $parent->lineage);
+            } else if($type == "Rogue") {
+                // Finds the first lineage with the specified id.
+                $parentLineage = CharacterLineage::where('id', $data['parent_data'][$key])->first();
+            } else if($type == "New") {
+                // Create a lineage if there's data for it.
+                if($data['parent_data'][$key] != "")
+                    $parentLineage = CharacterLineage::create(['character_name' => $data['parent_data'][$key]]);
+            }
+
+            if ($parentLineage) {
+                $link = CharacterLineageLink::create(['lineage_id' => $lineage->id, 'parent_lineage_id' => $parentLineage->id]);
+            }
+        }
+
+        return $lineage;
     }
 
     /**

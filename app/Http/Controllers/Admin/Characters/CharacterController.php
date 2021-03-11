@@ -9,6 +9,7 @@ use Config;
 use Settings;
 
 use App\Models\Character\Character;
+use App\Models\Character\CharacterLineage;
 use App\Models\Character\CharacterCategory;
 use App\Models\Rarity;
 use App\Models\User\User;
@@ -62,6 +63,8 @@ class CharacterController extends Controller
             'specieses' => ['0' => 'Select Species'] + Species::orderBy('sort', 'DESC')->pluck('name', 'id')->toArray(),
             'subtypes' => ['0' => 'Pick a Species First'],
             'features' => Feature::orderBy('name')->pluck('name', 'id')->toArray(),
+            'characterOptions' => Character::where('is_myo_slot', false)->orderBy('slug')->get()->pluck('full_name', 'id')->toArray(),
+            'rogueOptions' => CharacterLineage::where('character_id', null)->orderBy('character_name')->pluck('character_name', 'id')->toArray(),
             'isMyo' => false
         ]);
     }
@@ -79,6 +82,8 @@ class CharacterController extends Controller
             'specieses' => ['0' => 'Select Species'] + Species::orderBy('sort', 'DESC')->pluck('name', 'id')->toArray(),
             'subtypes' => ['0' => 'Pick a Species First'],
             'features' => Feature::orderBy('name')->pluck('name', 'id')->toArray(),
+            'characterOptions' => Character::where('is_myo_slot', false)->orderBy('slug')->get()->pluck('full_name', 'id')->toArray(),
+            'rogueOptions' => CharacterLineage::where('character_id', null)->orderBy('character_name')->pluck('character_name', 'id')->toArray(),
             'isMyo' => true
         ]);
     }
@@ -115,6 +120,7 @@ class CharacterController extends Controller
             'designer_id', 'designer_url',
             'artist_id', 'artist_url',
             'species_id', 'subtype_id', 'rarity_id', 'feature_id', 'feature_data',
+            'parent_type', 'parent_data',
             'image', 'thumbnail', 'image_description'
         ]);
         if ($character = $service->createCharacter($data, Auth::user())) {
@@ -145,6 +151,7 @@ class CharacterController extends Controller
             'designer_id', 'designer_url',
             'artist_id', 'artist_url',
             'species_id', 'subtype_id', 'rarity_id', 'feature_id', 'feature_data',
+            'parent_type', 'parent_data',
             'image', 'thumbnail'
         ]);
         if ($character = $service->createCharacter($data, Auth::user(), true)) {
