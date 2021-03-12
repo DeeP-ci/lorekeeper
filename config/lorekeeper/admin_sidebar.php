@@ -108,6 +108,10 @@ return [
                 'url' => 'admin/masterlist/create-myo'
             ],
             [
+                'name' => 'Manage Lineages',
+                'url' => 'admin/masterlist/lineages'
+            ],
+            [
                 'name' => 'Character Transfers',
                 'url' => 'admin/masterlist/transfers/incoming'
             ],
