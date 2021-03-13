@@ -80,4 +80,14 @@ class CharacterLineage extends Model
         if($this->character) return $this->character->display_name;
         return "<a href='".$this->url."'>".$this->name."</a>";
     }
+
+    /**
+     * Gets the thumbnail image of this lineage character.
+     * @return string
+     */
+    public function getThumbnailAttribute()
+    {
+        if($this->character) return $this->character->image->thumbnailUrl;
+        return url('images/rogue.png');
+    }
 }

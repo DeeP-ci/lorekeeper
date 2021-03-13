@@ -62,4 +62,9 @@ return [
         'description' => 'Thumbnail used for gallery submissions with a set content warning. PNG format, size of masterlist thumbnails.',
         'filename' => 'content_warning.png'
     ],
+    'rogue' => [
+        'name' => 'Rogue Character Thumbnail',
+        'description' => 'Thumbnail used for lineage entries with no character attatched.',
+        'filename' => 'rogue.png'
+    ],
 ];
