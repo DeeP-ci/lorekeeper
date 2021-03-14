@@ -8,6 +8,12 @@
         <div class="sidebar-item"><a href="{{ $character->url . '/inventory' }}" class="{{ set_active('character/'.$character->slug.'/inventory') }}">Inventory</a></div>
         <div class="sidebar-item"><a href="{{ $character->url . '/bank' }}" class="{{ set_active('character/'.$character->slug.'/bank') }}">Bank</a></div>
     </li>
+    <li class="sidebar-section"> {{-- Lineage Extension Links --}}
+        <div class="sidebar-section-header">Lineage</div>
+        <div class="sidebar-item"><a href="{{ $character->url . '/ancestors'}}" class="{{ set_active('character/'.$character->slug.'/ancestors') }}">Ancestors</a></div>
+        <div class="sidebar-item"><a href="{{ $character->url . '/offspring'}}" class="{{ set_active('character/'.$character->slug.'/offspring') }}">Offspring</a></div>
+        <div class="sidebar-item"><a href="{{ $character->url . '/relatives'}}" class="{{ set_active('character/'.$character->slug.'/relatives') }}">Relatives</a></div>
+    </li>
     <li class="sidebar-section">
         <div class="sidebar-section-header">History</div>
         <div class="sidebar-item"><a href="{{ $character->url . '/images' }}" class="{{ set_active('character/'.$character->slug.'/images') }}">Images</a></div>
