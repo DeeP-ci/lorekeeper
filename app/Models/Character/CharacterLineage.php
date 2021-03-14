@@ -2,6 +2,8 @@
 
 namespace App\Models\Character;
 
+use Auth;
+
 use App\Models\Model;
 
 use App\Models\Character\Character;
@@ -44,11 +46,31 @@ class CharacterLineage extends Model
 
     /**
      * Gets the lineage links where this character is the parent.
+     * WARNING: Will show hidden characters, use getChildren() instead.
+     * 
      * @return App\Models\Character\CharacterLineageLink
      */
     public function children()
     {
         return $this->hasMany('App\Models\Character\CharacterLineageLink', "parent_lineage_id", "id");
+    }
+
+    /**
+     * Gets the lineage links where the child character (if there is one) is visible to the user.
+     * 
+     * @return App\Models\Character\CharacterLineageLink
+     */
+    public function getChildren()
+    {
+        // Hide invisible children, if the User shouldn't be able to see them.
+        if(!Auth::check() || !(Auth::check() && Auth::user()->hasPower('manage_characters'))) {
+            $invisibles = CharacterLineage::where('character_id', "!=", null)
+                ->whereIn('character_lineages.id', $this->children->pluck('lineage_id')->toArray())
+                ->join('characters', 'character_lineages.character_id', '=', 'characters.id')
+                ->where('characters.is_visible', false)->pluck('character_lineages.id')->toArray();
+            return $this->children->whereNotIn('lineage_id', $invisibles);
+        }
+        return $this->children;
     }
 
     /**
