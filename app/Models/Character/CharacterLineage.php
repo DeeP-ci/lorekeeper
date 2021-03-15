@@ -96,8 +96,7 @@ class CharacterLineage extends Model
 
         // Get the siblings.
         $sibs = CharacterLineageLink::where('lineage_id', "!=", $this->id)->whereIn('parent_lineage_id', $parents);
-        return $sibs->select('lineage_id')->groupBy('lineage_id');
-        return $this->getFiltered($sibs)->get();
+        return $this->getGroupFiltered($sibs);
     }
 
     # -------------------------------------------------------------------------------------
@@ -116,6 +115,19 @@ class CharacterLineage extends Model
         $col = ($parent ? 'parent_' : '').'lineage_id';
         $ids = CharacterLineage::getInvisiblesFromIds($collection->pluck($col)->toArray());
         return $collection->whereNotIn($col, $ids);
+    }
+
+    /**
+     * Filters LineageLinks to get only visible ones, grouped to hide duplicates.
+     * 
+     * @param   Illuminate\Database\Eloquent\Collection
+     * @param   bool
+     * @return  Illuminate\Database\Eloquent\Collection
+     */
+    public static function getGroupFiltered($collection, $parent = false)
+    {
+        $col = ($parent ? 'parent_' : '').'lineage_id';
+        return CharacterLineage::getFiltered($collection, $parent)->select($col)->groupBy($col);
     }
 
     /**
