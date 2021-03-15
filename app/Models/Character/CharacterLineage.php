@@ -74,6 +74,38 @@ class CharacterLineage extends Model
     }
 
     /**
+     * Finds visible grandchildren of this character lineage.
+     * 
+     * @return Illuminate\Database\Eloquent\Collection
+     */
+    public function getGrandchildren()
+    {
+        // Get the CHILDREN
+        $children = $this->getChildren()->pluck('lineage_id')->toArray();
+        if (count($children) == 0) return null;
+
+        // Get the CHILDREN of the CHILDREN
+        $gchl = CharacterLineageLink::whereIn('parent_lineage_id', $children);
+        return $this->getGroupFiltered($gchl);
+    }
+
+    /**
+     * Finds visible great-grandchildren of this character lineage.
+     * 
+     * @return Illuminate\Database\Eloquent\Collection
+     */
+    public function getGreatGrandchildren()
+    {
+        // Get the GRANDCHILDREN
+        $gchl = $this->getGrandchildren()->pluck('lineage_id')->toArray();
+        if (count($gchl) == 0) return null;
+
+        // Get the CHILDREN of the GRANDCHILDREN
+        $ggc = CharacterLineageLink::whereIn('parent_lineage_id', $gchl);
+        return $this->getGroupFiltered($ggc);
+    }
+
+    /**
      * Gets the lineage links where the parent character (if there is one) is visible to the user.
      * 
      * @return App\Models\Character\CharacterLineageLink
@@ -84,19 +116,103 @@ class CharacterLineage extends Model
     }
 
     /**
+     * Finds visible grandparents of this character lineage.
+     * 
+     * @return Illuminate\Database\Eloquent\Collection
+     */
+    public function getGrandparents()
+    {
+        // Get the PARENTS
+        $parents = $this->getParents()->pluck('parent_lineage_id')->toArray();
+        if (count($parents) == 0) return null;
+
+        // Get the PARENTS of the PARENTS
+        $gps = CharacterLineageLink::whereIn('lineage_id', $parents);
+        return $this->getGroupFiltered($gps, true);
+    }
+
+    /**
+     * Finds visible great-grandparents of this character lineage.
+     * 
+     * @return Illuminate\Database\Eloquent\Collection
+     */
+    public function getGreatGrandparents()
+    {
+        // Get the GRANDPARENTS
+        $gps = $this->getGrandparents()->pluck('parent_lineage_id')->toArray();
+        if (count($gps) == 0) return null;
+
+        // Get the PARENTS of the GRANDPARENTS
+        $greats = CharacterLineageLink::whereIn('lineage_id', $gps);
+        return $this->getGroupFiltered($greats, true);
+    }
+
+    /**
      * Finds visible siblings of this character lineage.
      * 
      * @return Illuminate\Database\Eloquent\Collection
      */
     public function getSiblings()
     {
-        // Are there parents?
+        // Get the PARENTS
         $parents = $this->getParents()->pluck('parent_lineage_id')->toArray();
         if (!$this->getParents()->count()) return null;
 
-        // Get the siblings.
+        // Get the CHILDREN of the PARENTS
         $sibs = CharacterLineageLink::where('lineage_id', "!=", $this->id)->whereIn('parent_lineage_id', $parents);
         return $this->getGroupFiltered($sibs);
+    }
+
+    /**
+     * Finds visible niblings of this character lineage.
+     * 
+     * @return Illuminate\Database\Eloquent\Collection
+     */
+    public function getNiblings()
+    {
+        // Get the SIBLINGS
+        $sibs = $this->getSiblings()->pluck('lineage_id')->toArray();
+        if (count($sibs) == 0) return null;
+
+        // Get the CHILDREN of the SIBLINGS
+        $nibs = CharacterLineageLink::whereIn('parent_lineage_id', $sibs);
+        return $this->getGroupFiltered($nibs);
+    }
+
+    /**
+     * Finds visible auncles of this character lineage.
+     * 
+     * @return Illuminate\Database\Eloquent\Collection
+     */
+    public function getAuntsUncles()
+    {
+        // Get the PARENTS
+        $parents = $this->getParents()->pluck('parent_lineage_id')->toArray();
+        if (count($parents) == 0) return null;
+
+        // Get the PARENTS of the PARENTS
+        $gps = $this->getGrandparents()->pluck('parent_lineage_id')->toArray();
+        if (count($gps) == 0) return null;
+
+        // Get the SIBLINGS of the PARENTS
+        $auns = CharacterLineageLink::whereNotIn('lineage_id', $parents)->whereIn('parent_lineage_id', $gps);
+        return $this->getGroupFiltered($auns);
+    }
+
+    /**
+     * Finds visible cousins of this character lineage.
+     * 
+     * @return Illuminate\Database\Eloquent\Collection
+     */
+    public function getCousins()
+    {
+        // Get the AUNCLES
+        $auns = $this->getAuntsUncles()->pluck('lineage_id')->toArray();
+        if (count($auns) == 0) return null;
+
+        // Get the CHILDREN of the AUNCLES
+        $cous = CharacterLineageLink::whereIn('parent_lineage_id', $auns);
+        return $this->getGroupFiltered($cous);
     }
 
     # -------------------------------------------------------------------------------------
