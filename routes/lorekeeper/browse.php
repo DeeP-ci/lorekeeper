@@ -100,6 +100,14 @@ Route::group(['prefix' => 'myo', 'namespace' => 'Characters'], function() {
     Route::get('{id}/relatives', 'LineageController@getCousins')->where(['id' => '[0-9]+']);
     Route::get('{id}/lineage/{relation}', 'LineageController@getList')->where(['id' => '[0-9]+', 'relation' => 'parents|grandparents|great-grandparents|children|grandchildren|great-grandchildren|siblings|niblings|aunts-uncles|cousins']);
 });
+# Rogue Lineages
+Route::group(['prefix' => 'rogue', 'namespace' => 'Characters'], function() {
+    Route::get('{rogue}', 'LineageController@getRogue')->where(['rogue' => '[0-9]+']);
+    Route::get('{rogue}/ancestors', 'LineageController@getAncestors')->where(['rogue' => '[0-9]+']);
+    Route::get('{rogue}/offspring', 'LineageController@getDescendants')->where(['rogue' => '[0-9]+']);
+    Route::get('{rogue}/relatives', 'LineageController@getCousins')->where(['rogue' => '[0-9]+']);
+    Route::get('{rogue}/lineage/{relation}', 'LineageController@getList')->where(['rogue' => '[0-9]+', 'relation' => 'parents|grandparents|great-grandparents|children|grandchildren|great-grandchildren|siblings|niblings|aunts-uncles|cousins']);
+});
 
 
 /**************************************************************************************************
