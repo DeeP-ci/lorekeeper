@@ -70,14 +70,21 @@ class CharacterLineage extends Model
      */
     public function getChildren()
     {
-        // Hide invisible children, if the User shouldn't be able to see them.
-        $ids = $this->getInvisiblesFromIds($this->children->pluck('lineage_id')->toArray());
-        return $this->children->whereNotIn('lineage_id', $ids);
+        return $this->getFiltered($this->children);
     }
 
     # -------------------------------------------------------------------------------------
     #   HELPERS
     # -------------------------------------------------------------------------------------
+
+    /**
+     * Filters LineageLinks to get only visible ones.
+     */
+    public static function getFiltered($filterable)
+    {
+        $ids = $this->getInvisiblesFromIds($filterable->pluck('lineage_id')->toArray());
+        return $filterable->whereNotIn('lineage_id', $ids);
+    }
 
     /**
      * Filters a list of CharacterLineage ids to find ones the user isn't supposed to see.
