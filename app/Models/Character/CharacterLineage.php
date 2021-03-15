@@ -71,19 +71,35 @@ class CharacterLineage extends Model
     public function getChildren()
     {
         // Hide invisible children, if the User shouldn't be able to see them.
-        if(!Auth::check() || !(Auth::check() && Auth::user()->hasPower('manage_characters'))) {
-            $invisibles = CharacterLineage::where('character_id', "!=", null)
-                ->whereIn('character_lineages.id', $this->children->pluck('lineage_id')->toArray())
-                ->join('characters', 'character_lineages.character_id', '=', 'characters.id')
-                ->where('characters.is_visible', false)->pluck('character_lineages.id')->toArray();
-            return $this->children->whereNotIn('lineage_id', $invisibles);
-        }
-        return $this->children;
+        $ids = $this->getInvisiblesFromIds($this->children->pluck('lineage_id')->toArray());
+        return $this->children->whereNotIn('lineage_id', $ids);
     }
 
     # -------------------------------------------------------------------------------------
     #   HELPERS
     # -------------------------------------------------------------------------------------
+
+    /**
+     * Filters a list of CharacterLineage ids to find ones the user isn't supposed to see.
+     * 
+     * @param   array
+     * @return  array
+     */
+    public static function getInvisiblesFromIds($ids)
+    {
+        if (!is_array($ids)) return [];
+
+        // Hide invisible children, if the User shouldn't be able to see them.
+        if(!Auth::check() || !(Auth::check() && Auth::user()->hasPower('manage_characters'))) {
+            return CharacterLineage::where('character_id', "!=", null)
+                ->whereIn('character_lineages.id', $ids)
+                ->join('characters', 'character_lineages.character_id', '=', 'characters.id')
+                ->where('characters.is_visible', false)->pluck('character_lineages.id')->toArray();
+        }
+
+        // User has auth to see everything.
+        return [];
+    }
 
     # -------------------------------------------------------------------------------------
     #   ATTRIBUTES
