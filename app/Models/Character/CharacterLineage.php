@@ -73,6 +73,15 @@ class CharacterLineage extends Model
         return $this->getFiltered($this->children);
     }
 
+    /**
+     * Gets the lineage links where the parent character (if there is one) is visible to the user.
+     * 
+     * @return App\Models\Character\CharacterLineageLink
+     */
+    public function getParents()
+    {
+        return $this->getFiltered($this->parents);
+    }
     # -------------------------------------------------------------------------------------
     #   HELPERS
     # -------------------------------------------------------------------------------------
