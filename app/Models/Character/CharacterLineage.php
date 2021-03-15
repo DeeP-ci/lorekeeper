@@ -80,7 +80,7 @@ class CharacterLineage extends Model
      */
     public function getParents()
     {
-        return $this->getFiltered($this->parents);
+        return $this->getFiltered($this->parents, true);
     }
     # -------------------------------------------------------------------------------------
     #   HELPERS
@@ -88,11 +88,16 @@ class CharacterLineage extends Model
 
     /**
      * Filters LineageLinks to get only visible ones.
+     * 
+     * @param   Illuminate\Database\Eloquent\Collection
+     * @param   bool
+     * @return  Illuminate\Database\Eloquent\Collection
      */
-    public static function getFiltered($filterable)
+    public static function getFiltered($collection, $parent = false)
     {
-        $ids = CharacterLineage::getInvisiblesFromIds($filterable->pluck('lineage_id')->toArray());
-        return $filterable->whereNotIn('lineage_id', $ids);
+        $col = ($parent ? 'parent_' : '').'lineage_id';
+        $ids = CharacterLineage::getInvisiblesFromIds($collection->pluck($col)->toArray());
+        return $collection->whereNotIn($col, $ids);
     }
 
     /**
