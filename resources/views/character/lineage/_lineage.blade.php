@@ -6,7 +6,7 @@
     <?php
         $parent = ('parents' == substr($lineageType, strlen($lineageType) - 7, strlen($lineageType)));
         $relatives = null;
-        if ($character->lineage != null) {
+        if ($lineage != null) {
             switch ($lineageType) {
                 case 'parents':
                     $relatives = $lineage->getParents();
@@ -45,8 +45,7 @@
     @include('character.lineage._listing', [
         'pageTitle' => $pageTitle,
         'lineageType' => $lineageType,
-        'character' => $character,
-        'lineage' => $character->lineage,
+        'lineage' => $lineage,
         'parent' => $parent,
         'relatives' => $relatives,
     ])
