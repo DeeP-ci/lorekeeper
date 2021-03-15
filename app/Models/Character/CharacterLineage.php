@@ -82,6 +82,24 @@ class CharacterLineage extends Model
     {
         return $this->getFiltered($this->parents, true);
     }
+
+    /**
+     * Finds visible siblings of this character lineage.
+     * 
+     * @return Illuminate\Database\Eloquent\Collection
+     */
+    public function getSiblings()
+    {
+        // Are there parents?
+        $parents = $this->getParents()->pluck('parent_lineage_id')->toArray();
+        if (!$this->getParents()->count()) return null;
+
+        // Get the siblings.
+        $sibs = CharacterLineageLink::where('lineage_id', "!=", $this->id)->whereIn('parent_lineage_id', $parents);
+        return $sibs->select('lineage_id')->groupBy('lineage_id');
+        return $this->getFiltered($sibs)->get();
+    }
+
     # -------------------------------------------------------------------------------------
     #   HELPERS
     # -------------------------------------------------------------------------------------
