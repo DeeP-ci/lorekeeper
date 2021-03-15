@@ -91,7 +91,7 @@ class CharacterLineage extends Model
      */
     public static function getFiltered($filterable)
     {
-        $ids = $this->getInvisiblesFromIds($filterable->pluck('lineage_id')->toArray());
+        $ids = CharacterLineage::getInvisiblesFromIds($filterable->pluck('lineage_id')->toArray());
         return $filterable->whereNotIn('lineage_id', $ids);
     }
 
