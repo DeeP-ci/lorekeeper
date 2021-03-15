@@ -26,6 +26,10 @@ class CharacterLineage extends Model
      */
     protected $table = 'character_lineages';
 
+    # -------------------------------------------------------------------------------------
+    #   MODEL LINKS
+    # -------------------------------------------------------------------------------------
+
     /**
      * Gets the character this lineage is linked to.
      * @return App\Models\Character\Character
@@ -55,6 +59,10 @@ class CharacterLineage extends Model
         return $this->hasMany('App\Models\Character\CharacterLineageLink', "parent_lineage_id", "id");
     }
 
+    # -------------------------------------------------------------------------------------
+    #   RELATIVES
+    # -------------------------------------------------------------------------------------
+
     /**
      * Gets the lineage links where the child character (if there is one) is visible to the user.
      * 
@@ -72,6 +80,14 @@ class CharacterLineage extends Model
         }
         return $this->children;
     }
+
+    # -------------------------------------------------------------------------------------
+    #   HELPERS
+    # -------------------------------------------------------------------------------------
+
+    # -------------------------------------------------------------------------------------
+    #   ATTRIBUTES
+    # -------------------------------------------------------------------------------------
 
     /**
      * Gets the name of this lineage character.
