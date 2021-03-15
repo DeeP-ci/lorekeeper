@@ -82,12 +82,23 @@ Route::group(['prefix' => 'character', 'namespace' => 'Characters'], function() 
     Route::get('{slug}/submissions', 'CharacterController@getCharacterSubmissions');
 
     Route::get('{slug}/gallery', 'CharacterController@getCharacterGallery');
+
+    // LINEAGE
+    Route::get('{slug}/ancestors', 'LineageController@getAncestors');
+    Route::get('{slug}/offspring', 'LineageController@getDescendants');
+    Route::get('{slug}/relatives', 'LineageController@getCousins');
+    Route::get('{slug}/lineage/{relation}', 'LineageController@getList')->where(['relation' => 'parents|grandparents|great-grandparents|children|grandchildren|great-grandchildren|siblings|niblings|aunts-uncles|cousins']);
 });
 Route::group(['prefix' => 'myo', 'namespace' => 'Characters'], function() {
     Route::get('{id}', 'MyoController@getCharacter');
     Route::get('{id}/profile', 'MyoController@getCharacterProfile');
     Route::get('{id}/ownership', 'MyoController@getCharacterOwnershipLogs');
     Route::get('{id}/change-log', 'MyoController@getCharacterLogs');
+
+    // LINEAGE
+    Route::get('{id}/ancestors', 'LineageController@getAncestors')->where(['id' => '[0-9]+']);
+    Route::get('{id}/relatives', 'LineageController@getCousins')->where(['id' => '[0-9]+']);
+    Route::get('{id}/lineage/{relation}', 'LineageController@getList')->where(['id' => '[0-9]+', 'relation' => 'parents|grandparents|great-grandparents|children|grandchildren|great-grandchildren|siblings|niblings|aunts-uncles|cousins']);
 });
 
 
