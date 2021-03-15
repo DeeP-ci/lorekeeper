@@ -81,7 +81,8 @@ class CharacterLineage extends Model
     public function getGrandchildren()
     {
         // Get the CHILDREN
-        $children = $this->getChildren()->pluck('lineage_id')->toArray();
+        $children = $this->getChildren();
+        if ($children != null) $children = $children->pluck('lineage_id')->toArray();
         if (count($children) == 0) return null;
 
         // Get the CHILDREN of the CHILDREN
@@ -139,8 +140,9 @@ class CharacterLineage extends Model
     public function getGreatGrandparents()
     {
         // Get the GRANDPARENTS
-        $gps = $this->getGrandparents()->pluck('parent_lineage_id')->toArray();
-        if (count($gps) == 0) return null;
+        $gps = $this->getGrandparents();
+        if ($gps != null) $gps = $gps->pluck('parent_lineage_id')->toArray();
+        if ($gps == null || count($gps) == 0) return null;
 
         // Get the PARENTS of the GRANDPARENTS
         $greats = CharacterLineageLink::whereIn('lineage_id', $gps);
@@ -171,8 +173,9 @@ class CharacterLineage extends Model
     public function getNiblings()
     {
         // Get the SIBLINGS
-        $sibs = $this->getSiblings()->pluck('lineage_id')->toArray();
-        if (count($sibs) == 0) return null;
+        $sibs = $this->getSiblings();
+        if ($sibs != null) $sibs = $sibs->pluck('lineage_id')->toArray();
+        if ($sibs == null || count($sibs) == 0) return null;
 
         // Get the CHILDREN of the SIBLINGS
         $nibs = CharacterLineageLink::whereIn('parent_lineage_id', $sibs);
@@ -207,8 +210,9 @@ class CharacterLineage extends Model
     public function getCousins()
     {
         // Get the AUNCLES
-        $auns = $this->getAuntsUncles()->pluck('lineage_id')->toArray();
-        if (count($auns) == 0) return null;
+        $auns = $this->getAuntsUncles();
+        if ($auns != null) $auns = $auns->pluck('lineage_id')->toArray();
+        if ($auns == null || count($auns) == 0) return null;
 
         // Get the CHILDREN of the AUNCLES
         $cous = CharacterLineageLink::whereIn('parent_lineage_id', $auns);
