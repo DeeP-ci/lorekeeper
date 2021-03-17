@@ -1381,6 +1381,18 @@ class CharacterManager extends Service
             // Design updates use soft deletes
             CharacterDesignUpdate::where('character_id', $character->id)->delete();
 
+            // If this character has a lineage with links, orphan it. Otherwise, delete.
+            if ($character->lineage) {
+                $lineage = $character->lineage;
+                if ($lineage->parents->count() > 0 || $lineage->children->count() > 0) {
+                    $lineage->character_name = $character->is_myo_slot ? $character->name : $character->full_name;
+                    $lineage->character_id = null;
+                    $lineage->save();
+                } else {
+                    $lineage->delete();
+                }
+            }
+
             // Delete character
             // This is a soft delete, so the character still kind of exists
             $character->delete();
