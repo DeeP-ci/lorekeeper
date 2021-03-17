@@ -21,7 +21,22 @@
         <img src="{{ $lineage->thumbnail }}" alt="Unknown">
     </div>
 
-    <p class="text-center text-muted">No data available.</p>
+    <p class="text-center text-muted mb-4">No data available.</p>
+
+    <div class="card character-bio">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" id="lineageTab" data-toggle="tab" href="#lineage" role="tab">Lineage</a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body tab-content">
+            <div class="tab-pane fade show active" id="lineage">
+                @include('character.lineage._tab_lineage', ['lineage' => $lineage])
+            </div>
+        </div>
+    </div>
 @endsection
 
 @section('scripts')
