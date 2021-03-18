@@ -12,8 +12,6 @@
 
 <p>A masterlist of all lineages in the game.</p>
 
-
-
 <div>
     {!! Form::open(['method' => 'GET', 'class' => 'form-inline justify-content-end']) !!}
         <div class="form-group mb-3">
@@ -34,14 +32,14 @@
     {!! $lineages->render() !!}
       <div class="row ml-md-2">
         <div class="d-flex row flex-wrap col-12 pb-1 px-0 ubt-bottom">
-          <div class="col-5 font-weight-bold">Name</div>
-          <div class="col-5 font-weight-bold">Character</div>
+          <div class="col-6 font-weight-bold">Link</div>
+          <div class="col-4 font-weight-bold">Type</div>
           <div class="col-2 text-center font-weight-bold">Actions</div>
         </div>
         @foreach($lineages as $lineage)
         <div class="d-flex row flex-wrap col-12 mt-1 pt-1 px-0 ubt-top">
-          <div class="col-5">{!! $lineage->character_name == "" ? "<em>Unnamed</em>" : $lineage->character_name !!}</div>
-          <div class="col-5">{!! $lineage->character ? $lineage->character->display_name : '---' !!}</div>
+          <div class="col-6">{!! $lineage->display_name !!}</div>
+          <div class="col-4">{!! $lineage->character ? ($lineage->character->is_myo_slot ? "MYO " : "")."Character" : "Rogue" !!}</div>
           <div class="col-2 text-center"><a href="{{ url('admin/masterlist/lineages/edit/'.$lineage->id) }}" class="btn btn-primary py-0 px-1 w-100">Edit</a></div>
         </div>
         @endforeach
