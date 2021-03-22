@@ -32,33 +32,4 @@
     </div>
 {!! Form::close() !!}
 
-<script>
-    $(document).ready(function() {
-        $( "#datepicker" ).datetimepicker({
-            dateFormat: "yy-mm-dd",
-            timeFormat: 'HH:mm:ss',
-        });
-
-        //$('[data-toggle=toggle]').bootstrapToggle();
-
-        // Resell options /////////////////////////////////////////////////////////////////////////////
-
-        var $resellable = $('#resellable');
-        var $resellOptions = $('#resellOptions');
-
-        var resellable = $resellable.is(':checked');
-
-        updateOptions();
-
-        $resellable.on('change', function(e) {
-            resellable = $resellable.is(':checked');
-
-            updateOptions();
-        });
-
-        function updateOptions() {
-            if(resellable) $resellOptions.removeClass('hide');
-            else $resellOptions.addClass('hide');
-        }
-    });
-</script>
+@include('js._lineage_js')
