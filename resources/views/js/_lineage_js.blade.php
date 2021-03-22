@@ -1,44 +1,52 @@
 <script>
     $(document).ready(function() {
 
+        $(document).find('.lineage-owner-data').selectize();
         $('#parentList').find('.lineage-data').selectize();
-
-        var $characterSelect = $('#lineageHelperData').find('.character-select');
-        var $rogueSelect = $('#lineageHelperData').find('.rogue-select');
-        var $newRogue = $('#lineageHelperData').find('.rogue-new');
+        $('#childList').find('.lineage-data').selectize();
 
         $('#add-parent').on('click', function(e) {
             e.preventDefault();
-            addParentRow();
+            addNewRow('parent');
         });
-        $('.remove-parent').on('click', function(e) {
+        $('#add-child').on('click', function(e) {
+            e.preventDefault();
+            addNewRow('child');
+        });
+        $('.remove-parent, .remove-child').on('click', function(e) {
             e.preventDefault();
             removeParentRow($(this));
-        })
-        function addParentRow() {
-            var $clone = $('.parent-row').clone();
-            $('#parentList').append($clone);
-            $clone.removeClass('hide parent-row');
+        });
+
+        function addNewRow(type) {
+            var $clone = $('.'+ type +'-row').clone();
+            $('#'+ type +'List').append($clone);
+            $clone.removeClass('hide '+ type +'-row');
             $clone.addClass('d-flex');
-            $clone.find('.remove-parent').on('click', function(e) {
+            $clone.find('.remove-'+ type).on('click', function(e) {
                 e.preventDefault();
                 removeParentRow($(this));
             })
             $clone.find('.lineage-data').selectize();
-            attachLineageTypeListener($clone.find('.lineage-type-select'));
+            attachLineageTypeListener($clone.find('.lineage-type-select'), type);
         }
+
         function removeParentRow($trigger) {
             $trigger.parent().parent().remove();
         }
-        function attachLineageTypeListener($node) {
+
+        function attachLineageTypeListener($node, type) {
             $node.on('change', function(e) {
                 var val = $(this).val();
                 var $cell = $(this).parent().parent().find('.lineage-data-select');
 
                 var $clone = null; var flag = true;
-                if(val == 'Character') $clone = $characterSelect.clone();
-                else if (val == 'Rogue') $clone = $rogueSelect.clone();
-                else if (val == 'New') $clone = $newRogue.clone();
+                if(val == 'Character')
+                    $clone = $('#lineageHelperData').find('.'+ type +'-data.character-select').clone();
+                else if (val == 'Rogue')
+                    $clone = $('#lineageHelperData').find('.'+ type +'-data.rogue-select').clone();
+                else if (val == 'New')
+                    $clone = $('#lineageHelperData').find('.'+ type +'-data.rogue-new').clone();
                 else flag = false;
 
                 $cell.html('');
