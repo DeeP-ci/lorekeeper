@@ -232,7 +232,6 @@ class CharacterManager extends Service
     {
         $lineage = CharacterLineage::create(['character_id' => $character->id]);
 
-
         // Attatch the Lineage Links
         foreach($data['parent_type'] as $key => $type) {
             $parentLineage = false;
@@ -251,6 +250,27 @@ class CharacterManager extends Service
 
             if ($parentLineage) {
                 $link = CharacterLineageLink::create(['lineage_id' => $lineage->id, 'parent_lineage_id' => $parentLineage->id]);
+            }
+        }
+        if(!$character->is_myo_slot) {
+            foreach($data['child_type'] as $key => $type) {
+                $childLineage = false;
+                if($type == "Character") {
+                    // Finds the first character or myo with the ID specified.
+                    $child = Character::where('id', $data['child_data'][$key])->first();
+                    $childLineage = (!$child) ? false : ((!$child->lineage) ? CharacterLineage::create(['character_id' => $child->id]) : $child->lineage);
+                } else if($type == "Rogue") {
+                    // Finds the first lineage with the specified id.
+                    $childLineage = CharacterLineage::where('id', $data['child_data'][$key])->first();
+                } else if($type == "New") {
+                    // Create a lineage if there's data for it.
+                    if($data['child_data'][$key] != "")
+                        $childLineage = CharacterLineage::create(['character_name' => $data['child_data'][$key]]);
+                }
+
+                if ($childLineage) {
+                    $link = CharacterLineageLink::create(['lineage_id' => $childLineage->id, 'parent_lineage_id' => $lineage->id]);
+                }
             }
         }
 
