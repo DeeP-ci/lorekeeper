@@ -56,6 +56,16 @@ class CharacterController extends Controller
      */
     public function getCreateCharacter()
     {
+        $parentOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
+            ->where('deleted_at', null)->where('is_myo_slot', false)
+            ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
+            ->pluck('identifiable_name', 'id')->toArray();
+        $childOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
+            ->where('deleted_at', null)
+            ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
+            ->pluck('identifiable_name', 'id')->toArray();
+        $rogueOptions = CharacterLineage::where('character_id', null)->pluck('character_name', 'id')->toArray();
+
         return view('admin.masterlist.create_character', [
             'categories' => CharacterCategory::orderBy('sort')->get(),
             'userOptions' => User::query()->orderBy('name')->pluck('name', 'id')->toArray(),
@@ -63,8 +73,9 @@ class CharacterController extends Controller
             'specieses' => ['0' => 'Select Species'] + Species::orderBy('sort', 'DESC')->pluck('name', 'id')->toArray(),
             'subtypes' => ['0' => 'Pick a Species First'],
             'features' => Feature::orderBy('name')->pluck('name', 'id')->toArray(),
-            'characterOptions' => Character::where('is_myo_slot', false)->orderBy('slug')->get()->pluck('full_name', 'id')->toArray(),
-            'rogueOptions' => CharacterLineage::where('character_id', null)->orderBy('character_name')->pluck('character_name', 'id')->toArray(),
+            'parentOptions' => $parentOptions,
+            'childOptions' => $childOptions,
+            'rogueOptions' => $rogueOptions,
             'isMyo' => false
         ]);
     }
@@ -76,14 +87,20 @@ class CharacterController extends Controller
      */
     public function getCreateMyo()
     {
+        $parentOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
+            ->where('deleted_at', null)->where('is_myo_slot', false)
+            ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
+            ->pluck('identifiable_name', 'id')->toArray();
+        $rogueOptions = CharacterLineage::where('character_id', null)->pluck('character_name', 'id')->toArray();
+
         return view('admin.masterlist.create_character', [
             'userOptions' => User::query()->orderBy('name')->pluck('name', 'id')->toArray(),
             'rarities' => ['0' => 'Select Rarity'] + Rarity::orderBy('sort', 'DESC')->pluck('name', 'id')->toArray(),
             'specieses' => ['0' => 'Select Species'] + Species::orderBy('sort', 'DESC')->pluck('name', 'id')->toArray(),
             'subtypes' => ['0' => 'Pick a Species First'],
             'features' => Feature::orderBy('name')->pluck('name', 'id')->toArray(),
-            'characterOptions' => Character::where('is_myo_slot', false)->orderBy('slug')->get()->pluck('full_name', 'id')->toArray(),
-            'rogueOptions' => CharacterLineage::where('character_id', null)->orderBy('character_name')->pluck('character_name', 'id')->toArray(),
+            'parentOptions' => $parentOptions,
+            'rogueOptions' => $rogueOptions,
             'isMyo' => true
         ]);
     }
@@ -121,6 +138,7 @@ class CharacterController extends Controller
             'artist_id', 'artist_url',
             'species_id', 'subtype_id', 'rarity_id', 'feature_id', 'feature_data',
             'parent_type', 'parent_data',
+            'child_type', 'child_data',
             'image', 'thumbnail', 'image_description'
         ]);
         if ($character = $service->createCharacter($data, Auth::user())) {
