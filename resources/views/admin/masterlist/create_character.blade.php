@@ -213,6 +213,7 @@
     @include('admin.masterlist._create_edit_lineage', [
         "mode" => 'new-character',
         "isMyo" => $isMyo,
+        "ownerOptions" => $rogueOptions,
         "parentOptions" => $parentOptions,
         "childOptions" => isset($childOptions) ? $childOptions : null,
         "rogueOptions" => $rogueOptions,

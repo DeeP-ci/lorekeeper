@@ -230,7 +230,15 @@ class CharacterManager extends Service
      */
     private function handleCharacterLineage($data, $character)
     {
-        $lineage = CharacterLineage::create(['character_id' => $character->id]);
+        $lineage = false;
+        if(isset($data['owner_id']) && $data['owner_id'] != null) $lineage = CharacterLineage::where('id', $data['owner_id'])->first();
+
+        if ($lineage && $lineage->character_id == null) {
+            $lineage->character_id = $character->id;
+            $lineage->save();
+        } else if (!$lineage || $lineage->character_id != null) {
+            $lineage = CharacterLineage::create(['character_id' => $character->id]);
+        }
 
         // Attatch the Lineage Links
         foreach($data['parent_type'] as $key => $type) {

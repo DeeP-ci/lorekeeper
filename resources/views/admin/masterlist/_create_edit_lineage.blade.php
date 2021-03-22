@@ -1,5 +1,39 @@
+{{-- Owner Data, doesn't appear on MYO creation. --}}
+@if(isset($mode) && $mode != 'new-character')
+    <p class="alert alert-info">
+        If there is a character or myo set, then the lineage will belong to that character/myo and not be a rogue/characterless lineage.
+        In order to remove a character from a lineage and turn it into a rogue, you must give it a name.
+    </p>
+    @if(isset($isMyo) && $isMyo == true)
+        <p class="alert alert-warning">
+            If you turn a MYO's lineage into a Rogue/Characterless lineage, it cannot be changed back to being a MYO lineage.
+        </p>
+    @endif
+    <div class="form-group">
+        <div class="row">
+            <div class="col-sm-6">
+                {!! Form::label('owner_id', "Character".((isset($isMyo) && $isMyo == true) ? "/MYO" : "")." (Character Lineages)") !!}
+                {!! add_help('The character or MYO slot that owns this lineage.') !!}
+                {!! Form::select('owner_id', $ownerOptions, isset($lineage) ? $lineage->character_id : null, ['class' => 'lineage-owner-data form-control mr-2', 'placeholder' => 'Select Character']) !!}
+            </div>
+            <div class="col-sm-6">
+                {!! Form::label('owner_name', "Name (Characterless/Rogue Lineages)") !!}
+                {!! add_help('The name of the Rogue that owns this lineage, if there is no character/MYO owner.') !!}
+                {!! Form::text('owner_name', isset($lineage) ? $lineage->character_name : null, ['class' => 'form-control mr-2', 'placeholder' => 'Rogue Name']) !!}
+            </div>
+        </div>
+    </div>
+    <hr>
+@elseif(isset($mode) && $mode == 'new-character' && !(isset($isMyo) && $isMyo == true))
+    <p class="alert alert-info">
+        You can optionally pick a rogue characterless lineage to assign to this character. Parents and children below will be added <strong>in addition</strong> to the rogue's parents and children.
+    </p>
+    {!! Form::label('owner_id', "Assign Rogue Lineage (Optional)") !!}
+    {!! Form::select('owner_id', $ownerOptions, null, ['class' => 'lineage-owner-data form-control mb-2', 'placeholder' => 'Select Rogue Lineage']) !!}
+@endif
+
 {{-- Parents and Parent Data, appears on ALL variants. --}}
-{!! Form::label('parent', "Parents") . add_help('Here you can add or remove parents.') !!}
+{!! Form::label('parent', "Parents") . add_help('Parents can be any character or rogue.') !!}
 <div class="form-group">
     <div id="parentList">
         {{-- If there's a $lineage, check for existing parents. --}}
@@ -28,7 +62,7 @@
 
 {{-- Child and Children Data, does NOT appear on MYOs. --}}
 @if(!(isset($isMyo) && $isMyo == true))
-    {!! Form::label('child', "Children") . add_help('Here you can add or remove children.') !!}
+    {!! Form::label('child', "Children") . add_help('Children can be any myo, character or rogue.') !!}
     <div class="form-group">
         <div id="childList">
             {{-- If there's a $lineage, check for existing children. --}}

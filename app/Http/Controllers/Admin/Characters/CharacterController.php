@@ -137,6 +137,7 @@ class CharacterController extends Controller
             'designer_id', 'designer_url',
             'artist_id', 'artist_url',
             'species_id', 'subtype_id', 'rarity_id', 'feature_id', 'feature_data',
+            'owner_id',
             'parent_type', 'parent_data',
             'child_type', 'child_data',
             'image', 'thumbnail', 'image_description'
