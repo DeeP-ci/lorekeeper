@@ -359,6 +359,10 @@ Route::group(['prefix' => 'character', 'namespace' => 'Characters', 'middleware'
     Route::post('{slug}/settings', 'CharacterController@postCharacterSettings');
 
     Route::post('{slug}/transfer', 'CharacterController@postTransfer');
+
+    # LINEAGE
+    Route::get('{slug}/lineage', 'CharacterLineageController@getEditCharacterLineage');
+    Route::post('{slug}/lineage', 'CharacterLineageController@getEditCharacterLineage');
 });
 // Might rewrite these parts eventually so there's less code duplication...
 Route::group(['prefix' => 'myo', 'namespace' => 'Characters', 'middleware' => 'power:manage_characters'], function() {
@@ -378,8 +382,17 @@ Route::group(['prefix' => 'myo', 'namespace' => 'Characters', 'middleware' => 'p
     Route::post('{id}/settings', 'CharacterController@postMyoSettings');
 
     Route::post('{id}/transfer', 'CharacterController@postMyoTransfer');
+
+    # LINEAGE
+    Route::get('{id}/lineage', 'CharacterLineageController@getEditMyoLineage');
+    Route::post('{id}/lineage', 'CharacterLineageController@getEditMyoLineage');
 });
 
+Route::group(['prefix' => 'rogue', 'namespace' => 'Characters', 'middleware' => 'power:manage_characters'], function() {
+    # LINEAGE
+    Route::get('{id}/lineage', 'CharacterLineageController@getEditRogueLineage');
+    Route::post('{id}/lineage', 'CharacterLineageController@getEditRogueLineage');
+});
 # RAFFLES
 Route::group(['prefix' => 'raffles', 'middleware' => 'power:manage_raffles'], function() {
     Route::get('/', 'RaffleController@getRaffleIndex');

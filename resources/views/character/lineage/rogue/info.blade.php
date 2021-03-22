@@ -34,6 +34,13 @@
         <div class="card-body tab-content">
             <div class="tab-pane fade show active" id="lineage">
                 @include('character.lineage._tab_lineage', ['lineage' => $lineage])
+
+                @if(Auth::check() && Auth::user()->hasPower('manage_characters'))
+                    <div class="mt-3 text-right">
+                        <span class="badge badge-primary">Lineage #{{ $lineage->id }}</span>
+                        <a href="#" class="ml-2 btn btn-outline-info btn-sm edit-lineage" data-id="{{ $lineage->id }}"><i class="fas fa-cog"></i> Edit</a>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -41,4 +48,10 @@
 
 @section('scripts')
     @parent
+    <script>
+        $('.edit-lineage').on('click', function(e) {
+            e.preventDefault();
+            loadModal("{{ url('admin/rogue/') }}/"+$(this).data('id')+"/lineage", 'Edit Rogue Lineage');
+        });
+    </script>
 @endsection

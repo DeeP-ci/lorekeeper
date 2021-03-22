@@ -119,6 +119,7 @@ class CharacterLineageController extends Controller
     public function getEditCharacterLineage($slug)
     {
         $this->character = Character::where('slug', $slug)->first();
+        if (!$this->character) abort(404);
         return $this->getEditLineageModal();
     }
 
@@ -131,6 +132,7 @@ class CharacterLineageController extends Controller
     public function getEditMyoLineage($id)
     {
         $this->character = Character::where('id', $id)->first();
+        if (!$this->character) abort(404);
         return $this->getEditLineageModal();
     }
 
@@ -139,15 +141,19 @@ class CharacterLineageController extends Controller
      *
      * @return \Illuminate\Contracts\Support\Renderable
      */
-    public function getEditLineageModal()
+    private function getEditLineageModal()
     {
-        if(!$this->character) abort(404);
+        if (!isset($this->character) && !isset($this->lineage)) abort(404);
+        $isMyo = isset($this->character) ? $this->character->is_myo_slot : false;
+        $isRogue = !isset($this->character);
 
-        $characters = Character::where('id', '!=', $this->character->id)->where('is_myo_slot', false)->orderBy('slug')->get()->pluck('full_name', 'id')->toArray();
+        $characters = Character::where('id', '!=', isset($this->character) ? $this->character->id : 0)->where('is_myo_slot', false)->orderBy('slug')->get()->pluck('full_name', 'id')->toArray();
         $lineages = CharacterLineage::where('character_id', null)->pluck('character_name', 'id')->toArray();
         return view('character.admin._edit_lineage_modal', [
-            'character' => $this->character,
-            'isMyo' => $this->character->is_myo_slot,
+            'character' => $isRogue ? null : $this->character,
+            'lineage' => $isRogue ? $this->lineage : $this->character->lineage,
+            'isMyo' => $isMyo,
+            'isRogue' => $isRogue,
             'character_options' => $characters,
             'rogue_options' => $lineages,
         ]);
