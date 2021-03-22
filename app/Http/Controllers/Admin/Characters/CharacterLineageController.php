@@ -137,6 +137,19 @@ class CharacterLineageController extends Controller
     }
 
     /**
+     * Gets the edit rogue lineage modal.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function getEditRogueLineage($id)
+    {
+        $this->lineage = CharacterLineage::where('id', $id)->where('character_id', null)->first();
+        if (!$this->lineage) abort(404);
+        return $this->getEditLineageModal();
+    }
+
+    /**
      * Shows the edit character lineage modal.
      *
      * @return \Illuminate\Contracts\Support\Renderable
