@@ -11,79 +11,17 @@
     @endif
 </h1>
 
-{!! Form::open(['url' => 'admin/masterlist/edit']) !!}
+{{-- Form needs to be opened and closed OUTSIDE of the form data inclusion. --}}
+{!! Form::open(['url' => 'admin/masterlist/edit/'.$lineage->id]) !!}
 
-<p>TBA blah blah</p>
-
-<h3>Parents</h3>
-
-<div class="form-group">
-    <div id="parentList">
-        @if($lineage->id)
-            @foreach($lineage->parents as $parent)
-                <div class="row">
-                    <div class="lineage-type mb-1 col-sm-5">
-                        {!! Form::select('parent_type[]', ['Character' => "Character", 'Rogue' => "Characterless Lineage", 'New' => "New Characterless"], (!$parent->parent->character) ? "Rogue" : "Character", ['class' => 'lineage-type-select form-control mr-2', 'placeholder' => 'Select Parent Type']) !!}
-                    </div>
-                    <div class="lineage-data-select mb-2 col-10 col-sm-6">
-                        @if(!$parent->parent->character)
-                            {!! Form::select('parent_data[]', $rogueOptions, $parent->parent->id, ['class' => 'lineage-data form-control mr-2', 'placeholder' => 'Select Lineage']) !!}
-                        @else
-                            {!! Form::select('parent_data[]', $characterOptions, $parent->parent->character_id, ['class' => 'lineage-data form-control mr-2', 'placeholder' => 'Select Character']) !!}
-                        @endif
-                    </div>
-                    <div class="mb-2 col-2 col-sm-1 text-right">
-                        <a href="#" class="remove-parent btn btn-danger mb-2">×</a>
-                    </div>
-                </div>
-            @endforeach
-        @endif
-    </div>
-    <div><a href="#" class="btn btn-primary" id="add-parent">Add Parent</a></div>
-</div>
-<div id="lineageHelperData" class="hide">
-    <div class="row parent-row">
-        <div class="lineage-type mb-1 col-sm-5">
-            {!! Form::select('parent_type[]', ['Character' => "Character", 'Rogue' => "Characterless Lineage", 'New' => "New Characterless"], "Character", ['class' => 'lineage-type-select form-control mr-2', 'placeholder' => 'Select Parent Type']) !!}
-        </div>
-        <div class="lineage-data-select mb-2 col-10 col-sm-6">
-        {!! Form::select('parent_data[]', $characterOptions, null, ['class' => 'lineage-data form-control mr-2', 'placeholder' => 'Select Character']) !!}
-        </div>
-        <div class="mb-2 col-2 col-sm-1 text-right">
-            <a href="#" class="remove-parent btn btn-danger mb-2">×</a>
-        </div>
-    </div>
-    {!! Form::select('parent_data[]', $characterOptions, null, ['class' => 'character-select lineage-data form-control mr-2', 'placeholder' => 'Select Character']) !!}
-    {!! Form::select('parent_data[]', $rogueOptions, null, ['class' => 'rogue-select lineage-data form-control mr-2', 'placeholder' => 'Select Lineage']) !!}
-    {!! Form::text('parent_data[]', null, ['class' => 'rogue-new form-control lineage-data mr-2', 'placeholder' => 'Rogue\'s Name']) !!}
-</div>
-
-<h3>Children</h3>
-
-<div class="form-group">
-    <div id="childList">
-        @if($lineage->id)
-            @foreach($lineage->children as $child)
-                <div class="row">
-                    <div class="lineage-type mb-1 col-sm-5">
-                        {!! Form::select('child_type[]', ['Character' => "Character", 'Rogue' => "Characterless Lineage", 'New' => "New Characterless"], (!$child->child->character) ? "Rogue" : "Character", ['class' => 'lineage-type-select form-control mr-2', 'placeholder' => 'Select Parent Type']) !!}
-                    </div>
-                    <div class="lineage-data-select mb-2 col-10 col-sm-6">
-                        @if(!$child->child->character)
-                            {!! Form::select('child_data[]', $rogueOptions, $child->child->id, ['class' => 'lineage-data form-control mr-2', 'placeholder' => 'Select Lineage']) !!}
-                        @else
-                            {!! Form::select('child_data[]', $characterOptions, $child->child->character_id, ['class' => 'lineage-data form-control mr-2', 'placeholder' => 'Select Character']) !!}
-                        @endif
-                    </div>
-                    <div class="mb-2 col-2 col-sm-1 text-right">
-                        <a href="#" class="remove-parent btn btn-danger mb-2">×</a>
-                    </div>
-                </div>
-            @endforeach
-        @endif
-    </div>
-    <div><a href="#" class="btn btn-primary" id="add-child">Add Child</a></div>
-</div>
+    @include('admin.masterlist._create_edit_lineage', [
+        "mode" => 'acp-edit',
+        "lineage" => $lineage,
+        "ownerOptions" => $ownerOptions,
+        "parentOptions" => $parentOptions,
+        "childOptions" => $childOptions,
+        "rogueOptions" => $rogueOptions,
+    ])
 
 <div class="text-right">
     {!! Form::submit(($lineage->id ? 'Edit' : 'Create').' Lineage', ['class' => 'btn btn-primary']) !!}

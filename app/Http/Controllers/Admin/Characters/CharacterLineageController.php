@@ -101,12 +101,28 @@ class CharacterLineageController extends Controller
         $lineage = CharacterLineage::where('id', $id)->first();
         if (!$lineage) return abort(404);
 
-        $characters = Character::where('is_myo_slot', false)->orderBy('slug')->get()->pluck('full_name', 'id')->toArray();
-        $lineages = CharacterLineage::where('character_id', null)->pluck('character_name', 'id')->toArray();
+        // Get a list of characters without lineages, and the character that owns this lineage (if any).
+        $ids = CharacterLineage::where('character_id', '!=', null)->where('character_id', '!=', $lineage->character_id)->pluck('character_id')->toArray();
+        $ownerOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
+            ->where('deleted_at', null)->where('is_myo_slot', false)->whereNotIn('id', $ids)
+            ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
+            ->pluck('identifiable_name', 'id')->toArray();
+        $parentOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
+            ->where('deleted_at', null)->where('is_myo_slot', false)
+            ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
+            ->pluck('identifiable_name', 'id')->toArray();
+        $childOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
+            ->where('deleted_at', null)
+            ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
+            ->pluck('identifiable_name', 'id')->toArray();
+        $rogueOptions = CharacterLineage::where('character_id', null)->pluck('character_name', 'id')->toArray();
+
         return view('admin.masterlist.create_edit_lineage', [
             'lineage' => $lineage,
-            'characterOptions' => $characters,
-            'rogueOptions' => $lineages,
+            'ownerOptions' => $ownerOptions,
+            'parentOptions' => $parentOptions,
+            'childOptions' => $childOptions,
+            'rogueOptions' => $rogueOptions,
         ]);
     }
 
@@ -159,16 +175,35 @@ class CharacterLineageController extends Controller
         if (!isset($this->character) && !isset($this->lineage)) abort(404);
         $isMyo = isset($this->character) ? $this->character->is_myo_slot : false;
         $isRogue = !isset($this->character);
+        $lineage = $isRogue ? $this->lineage : $this->character->lineage;
 
-        $characters = Character::where('id', '!=', isset($this->character) ? $this->character->id : 0)->where('is_myo_slot', false)->orderBy('slug')->get()->pluck('full_name', 'id')->toArray();
-        $lineages = CharacterLineage::where('character_id', null)->pluck('character_name', 'id')->toArray();
+        // Get a list of characters without lineages, and the character that owns this lineage (if any).
+        $ids = CharacterLineage::where('character_id', '!=', null)->where('character_id', '!=', $lineage ? $lineage->character_id : null)->pluck('character_id')->toArray();
+        $ownerOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name');
+        if (!$isMyo) $ownerOptions = $ownerOptions->where('is_myo_slot', false);
+        $ownerOptions = $ownerOptions
+            ->where('deleted_at', null)->whereNotIn('id', $ids)
+            ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
+            ->pluck('identifiable_name', 'id')->toArray();
+        $parentOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
+            ->where('deleted_at', null)->where('is_myo_slot', false)
+            ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
+            ->pluck('identifiable_name', 'id')->toArray();
+        if (!$isMyo) $childOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
+                ->where('deleted_at', null)
+                ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
+                ->pluck('identifiable_name', 'id')->toArray();
+        $rogueOptions = CharacterLineage::where('character_id', null)->pluck('character_name', 'id')->toArray();
+
         return view('character.admin._edit_lineage_modal', [
             'character' => $isRogue ? null : $this->character,
-            'lineage' => $isRogue ? $this->lineage : $this->character->lineage,
+            'lineage' => $lineage,
             'isMyo' => $isMyo,
             'isRogue' => $isRogue,
-            'character_options' => $characters,
-            'rogue_options' => $lineages,
+            'ownerOptions' => $ownerOptions,
+            'parentOptions' => $parentOptions,
+            'childOptions' => isset($childOptions) ? $childOptions : [],
+            'rogueOptions' => $rogueOptions,
         ]);
     }
 }
