@@ -308,6 +308,8 @@ Route::group(['prefix' => 'masterlist', 'namespace' => 'Characters', 'middleware
     # LINEAGE
     Route::get('lineages', 'CharacterLineageController@getIndex');
     Route::get('lineages/edit/{id}', 'CharacterLineageController@getEditLineage');
+    Route::get('lineages/delete/{id}', 'CharacterLineageController@getDeleteLineageModal');
+    Route::post('lineages/delete/{id}', 'CharacterLineageController@postDeleteLineage');
 });
 Route::group(['prefix' => 'character', 'namespace' => 'Characters', 'middleware' => 'power:edit_inventories'], function() {
     Route::post('{slug}/grant', 'GrantController@postCharacterCurrency');

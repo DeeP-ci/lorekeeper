@@ -33,5 +33,14 @@
 @section('scripts')
 @parent
 @include('js._lineage_js')
-
+@if($lineage->id)
+    <script>
+        $(document).ready(function() {
+            $('.delete-lineage-button').on('click', function(e) {
+                e.preventDefault();
+                loadModal("{{ url('admin/masterlist/lineages/delete/'.$lineage->id) }}", 'Delete Lineage');
+            });
+        });
+    </script>
+@endif
 @endsection

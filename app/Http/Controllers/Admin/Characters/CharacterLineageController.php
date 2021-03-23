@@ -17,6 +17,7 @@ use App\Models\Species\Subtype;
 use App\Models\Feature\Feature;
 
 use App\Services\CharacterManager;
+use App\Services\LineageManager;
 
 use App\Http\Controllers\Controller;
 
@@ -205,5 +206,45 @@ class CharacterLineageController extends Controller
             'childOptions' => isset($childOptions) ? $childOptions : [],
             'rogueOptions' => $rogueOptions,
         ]);
+    }
+
+    /**
+     * Shows the delete lineage modal.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function getDeleteLineageModal($id)
+    {
+        $this->lineage = CharacterLineage::where('id', $id)->first();
+        if (!$this->lineage) abort(404);
+
+        return view('admin.masterlist._delete_lineage', [
+            'lineage' => $this->lineage,
+        ]);
+    }
+
+    /**
+     * Deletes a lineage.
+     *
+     * @param  \Illuminate\Http\Request     $request
+     * @param  App\Services\LineageManager  $service
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function postDeleteLineage(Request $request, LineageManager $service, $id)
+    {
+        $this->lineage = CharacterLineage::where('id', $id)->first();
+        if (!$this->lineage) abort(404);
+
+        $data = $request->only(['lineage_id']);
+        $url = $this->lineage->character ? $this->lineage->character->url : 'admin/masterlist/lineages';
+
+        if ($service->deleteLineage($this->lineage, $data, Auth::user())) {
+            flash('Lineage deleted successfully.')->success();
+            return redirect()->to($url);
+        } else {
+            foreach($service->errors()->getMessages()['error'] as $error) flash($error)->error();
+        }
+        return redirect()->back()->withInput();
     }
 }
