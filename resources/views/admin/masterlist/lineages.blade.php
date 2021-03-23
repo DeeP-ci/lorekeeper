@@ -6,7 +6,7 @@
 {!! breadcrumbs(['Admin Panel' => 'admin', 'Lineages' => 'admin/masterlist/lineages']) !!}
 
 <div class="float-right">
-    <a class="btn btn-primary" href="{{ url('admin/data/lineages/create') }}"><i class="fas fa-plus"></i> Create New Lineage</a>
+    <a class="btn btn-primary" href="{{ url('admin/masterlist/lineages/create') }}"><i class="fas fa-plus"></i> Create New Lineage</a>
 </div>
 <h1>Lineages</h1>
 

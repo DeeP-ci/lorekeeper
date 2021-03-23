@@ -4,7 +4,7 @@
         If there is a character or myo set, then the lineage will belong to that character/myo and not be a rogue/characterless lineage.
         In order to remove a character from a lineage and turn it into a rogue, you must give it a name.
     </p>
-    @if(isset($isMyo) && $isMyo == true)
+    @if($mode != 'acp-create' && isset($isMyo) && $isMyo == true)
         <p class="alert alert-warning">
             If you turn a MYO's lineage into a Rogue/Characterless lineage, it cannot be changed back to being a MYO lineage.
         </p>

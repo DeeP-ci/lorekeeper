@@ -307,6 +307,8 @@ Route::group(['prefix' => 'masterlist', 'namespace' => 'Characters', 'middleware
 
     # LINEAGE
     Route::get('lineages', 'CharacterLineageController@getIndex');
+    Route::get('lineages/create', 'CharacterLineageController@getCreateLineage');
+    Route::post('lineages/create', 'CharacterLineageController@postCreateLineage');
     Route::get('lineages/edit/{id}', 'CharacterLineageController@getEditLineage');
     Route::get('lineages/delete/{id}', 'CharacterLineageController@getDeleteLineageModal');
     Route::post('lineages/delete/{id}', 'CharacterLineageController@postDeleteLineage');

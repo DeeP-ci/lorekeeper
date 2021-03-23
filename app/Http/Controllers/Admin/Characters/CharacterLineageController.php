@@ -92,6 +92,16 @@ class CharacterLineageController extends Controller
     }
 
     /**
+     * Shows the create lineage admin control panel page.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function getCreateLineage()
+    {
+        return $this->getCreateEditLineage(new CharacterLineage);
+    }
+
+    /**
      * Shows the edit character lineage admin control panel page.
      *
      * @param  int  $id
@@ -102,18 +112,50 @@ class CharacterLineageController extends Controller
         $lineage = CharacterLineage::where('id', $id)->first();
         if (!$lineage) return abort(404);
 
-        // Get a list of characters without lineages, and the character that owns this lineage (if any).
-        $ids = CharacterLineage::where('character_id', '!=', null)->where('character_id', '!=', $lineage->character_id)->pluck('character_id')->toArray();
-        $ownerOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
-            ->where('deleted_at', null)->where('is_myo_slot', false)->whereNotIn('id', $ids)
-            ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
-            ->pluck('identifiable_name', 'id')->toArray();
+        return $this->getCreateEditLineage($lineage);
+    }
+
+    /**
+     * Shows the edit character lineage admin control panel page.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    private function getCreateEditLineage($lineage)
+    {
+        if (!$lineage) return abort(404);
+        $isMyo = $lineage->id ? ($lineage->character ? $lineage->character->is_myo_slot : false) : true;
+
+        // If there is an ID, this is an EXISTING lineage.
+        if ($lineage->id) {
+            $ids = CharacterLineage::where('character_id', '!=', null)->where('id', '!=', $lineage->id)->pluck('character_id')->toArray();
+            $childOptions = $isMyo ?
+                null : 
+                Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
+                    ->where('deleted_at', null)
+                    ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
+                    ->pluck('identifiable_name', 'id')->toArray();
+        } else {
+            $ids = CharacterLineage::where('character_id', '!=', null)->pluck('character_id')->toArray();
+            $childOptions = null;
+        }
+
+        if(!$isMyo) {
+            // This is a lineage belonging to a character or rogue, it cannot be a MYO and can have kids.
+            $ownerOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
+                ->where('deleted_at', null)->where('is_myo_slot', false)->whereNotIn('id', $ids)
+                ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
+                ->pluck('identifiable_name', 'id')->toArray();
+        } else {
+            // This is a new lineage (don't know if it's allowed children yet) or a MYO lineage (cannot have kids)
+            $ownerOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
+                ->where('deleted_at', null)->whereNotIn('id', $ids)
+                ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
+                ->pluck('identifiable_name', 'id')->toArray();
+        }
+
         $parentOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
             ->where('deleted_at', null)->where('is_myo_slot', false)
-            ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
-            ->pluck('identifiable_name', 'id')->toArray();
-        $childOptions = Character::selectRaw('id, IF(is_myo_slot, CONCAT(\'#\', id, \' - \', name), IF(name IS NOT NULL, CONCAT(slug, \': \', name), slug)) as identifiable_name')
-            ->where('deleted_at', null)
             ->orderBy('is_myo_slot', 'asc')->orderBy('slug')
             ->pluck('identifiable_name', 'id')->toArray();
         $rogueOptions = CharacterLineage::where('character_id', null)->pluck('character_name', 'id')->toArray();
@@ -125,6 +167,70 @@ class CharacterLineageController extends Controller
             'childOptions' => $childOptions,
             'rogueOptions' => $rogueOptions,
         ]);
+    }
+
+    /**
+     * Create a lineage in the ACP.
+     *
+     * @param  \Illuminate\Http\Request     $request
+     * @param  App\Services\LineageManager  $service
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function postCreateLineage(Request $request, LineageManager $service)
+    {
+        $data = $request->only([
+            'owner_id', 'owner_name',
+            'parent_type', 'parent_data',
+        ]);
+        if ($lineage = $service->createLineage($data, Auth::user())) {
+            flash('Lineage created successfully.')->success();
+            return redirect()->to('admin/masterlist/lineages/edit/'.$lineage->id);
+        }
+        else {
+            foreach($service->errors()->getMessages()['error'] as $error) flash($error)->error();
+        }
+        return redirect()->back()->withInput();
+    }
+
+    /**
+     * Edit a character's lineage.
+     *
+     * @param  \Illuminate\Http\Request     $request
+     * @param  App\Services\LineageManager  $service
+     * @param  string                       $slug
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function postEditCharacterLineage(Request $request, LineageManager $service, $slug)
+    {
+        $this->character = Character::where('slug', $slug)->first();
+        if (!$this->character) abort(404);
+
+        $this->lineage = $this->character->lineage;
+        return $this->postEditLineage($request, $service);
+    }
+
+    /**
+     * Edit lineage.
+     *
+     * @param  \Illuminate\Http\Request     $request
+     * @param  App\Services\LineageManager  $service
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    private function postEditLineage(Request $request, LineageManager $service)
+    {
+        if (!isset($this->character) && !isset($this->lineage)) abort(404);
+        $data = $request->only([
+            'parent_type', 'parent_data',
+            'child_type', 'child_data',
+        ]);
+        if ($lineage = $service->editLineage($data, Auth::user())) {
+            flash('Lineage edited successfully.')->success();
+            return redirect()->to($lineage->url);
+        }
+        else {
+            foreach($service->errors()->getMessages()['error'] as $error) flash($error)->error();
+        }
+        return redirect()->back()->withInput();
     }
 
     /**

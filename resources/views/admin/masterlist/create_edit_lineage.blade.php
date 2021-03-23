@@ -1,9 +1,9 @@
 @extends('admin.layout')
 
-@section('admin-title') Loot Tables @endsection
+@section('admin-title') Lineages @endsection
 
 @section('admin-content')
-{!! breadcrumbs(['Admin Panel' => 'admin', 'Lineages' => 'admin/masterlist/lineages', ($lineage->id ? 'Edit' : 'Create').' Loot Table' => $lineage->id ? 'admin/data/loot-tables/edit/'.$lineage->id : 'admin/data/loot-tables/create']) !!}
+{!! breadcrumbs(['Admin Panel' => 'admin', 'Lineages' => 'admin/masterlist/lineages', ($lineage->id ? 'Edit' : 'Create').' Lineage' => $lineage->id ? 'admin/masterlist/lineages/edit/'.$lineage->id : 'admin/masterlist/lineages/create']) !!}
 
 <h1>{{ $lineage->id ? 'Edit' : 'Create' }} Lineage
     @if($lineage->id)
@@ -12,10 +12,11 @@
 </h1>
 
 {{-- Form needs to be opened and closed OUTSIDE of the form data inclusion. --}}
-{!! Form::open(['url' => 'admin/masterlist/edit/'.$lineage->id]) !!}
+{!! Form::open(['url' => 'admin/masterlist/lineages/'. ($lineage->id ? 'edit/'.$lineage->id : 'create') ]) !!}
 
     @include('admin.masterlist._create_edit_lineage', [
-        "mode" => 'acp-edit',
+        "mode" => $lineage->id ? 'acp-edit' : 'acp-create',
+        "isMyo" => $lineage->id ? ($lineage->character ? $lineage->character->is_myo_slot : false) : true,
         "lineage" => $lineage,
         "ownerOptions" => $ownerOptions,
         "parentOptions" => $parentOptions,
