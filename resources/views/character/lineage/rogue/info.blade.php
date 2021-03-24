@@ -39,6 +39,7 @@
                     <div class="mt-3 text-right">
                         <span class="badge badge-primary">Lineage #{{ $lineage->id }}</span>
                         <a href="#" class="ml-2 btn btn-outline-info btn-sm edit-lineage" data-id="{{ $lineage->id }}"><i class="fas fa-cog"></i> Edit</a>
+                        <a href="#" class="ml-1 btn btn-outline-danger btn-sm delete-lineage-button">Delete</a>
                     </div>
                 @endif
             </div>
@@ -52,6 +53,10 @@
         $('.edit-lineage').on('click', function(e) {
             e.preventDefault();
             loadModal("{{ url('admin/rogue/') }}/"+$(this).data('id')+"/lineage", 'Edit Rogue Lineage');
+        });
+        $('.delete-lineage-button').on('click', function(e) {
+            e.preventDefault();
+            loadModal("{{ url('admin/masterlist/lineages/delete/'.$lineage->id) }}", 'Delete Lineage');
         });
     </script>
 @endsection
