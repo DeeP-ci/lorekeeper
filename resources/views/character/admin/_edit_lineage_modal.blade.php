@@ -8,6 +8,7 @@
         "parentOptions" => $parentOptions,
         "childOptions" => $childOptions,
         "rogueOptions" => $rogueOptions,
+        "ownerOverride" => $isRogue ? null : $character->id,
     ])
 
     <div class="text-right">

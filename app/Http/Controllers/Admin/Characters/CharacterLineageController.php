@@ -176,7 +176,7 @@ class CharacterLineageController extends Controller
      * @param  App\Services\LineageManager  $service
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function postCreateLineage(Request $request, LineageManager $service)
+    public function postCreateLineage(Request $request, LineageManager $service, $acp = true)
     {
         $data = $request->only([
             'owner_id', 'owner_name',
@@ -184,7 +184,7 @@ class CharacterLineageController extends Controller
         ]);
         if ($lineage = $service->createLineage($data, Auth::user())) {
             flash('Lineage created successfully.')->success();
-            return redirect()->to('admin/masterlist/lineages/edit/'.$lineage->id);
+            return redirect()->to($acp ? 'admin/masterlist/lineages/edit/'.$lineage->id : $lineage->url);
         }
         else {
             foreach($service->errors()->getMessages()['error'] as $error) flash($error)->error();
@@ -298,6 +298,55 @@ class CharacterLineageController extends Controller
             'childOptions' => isset($childOptions) ? $childOptions : [],
             'rogueOptions' => $rogueOptions,
         ]);
+    }
+
+    /**
+     * Edit a character's lineage.
+     *
+     * @param  \Illuminate\Http\Request     $request
+     * @param  App\Services\LineageManager  $service
+     * @param  string                       $slug
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function postEditCharacterLineage(Request $request, LineageManager $service, $slug)
+    {
+        $this->character = Character::where('slug', $slug)->first();
+        if (!$this->character) abort(404);
+
+        if (!$this->character->lineage) return $this->postCreateLineage($request, $service, false);
+        return $this->postEditLineage($request, $service, $this->character->lineage->id, false);
+    }
+
+    /**
+     * Edit a myo's lineage.
+     *
+     * @param  \Illuminate\Http\Request     $request
+     * @param  App\Services\LineageManager  $service
+     * @param  string                       $slug
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function postEditMyoLineage(Request $request, LineageManager $service, $id)
+    {
+        $this->character = Character::where('id', $id)->first();
+        if (!$this->character) abort(404);
+
+        if (!$this->character->lineage) return $this->postCreateLineage($request, $service, false);
+        return $this->postEditLineage($request, $service, $this->character->lineage->id, false);
+    }
+
+    /**
+     * Edit a rogue lineage.
+     *
+     * @param  \Illuminate\Http\Request     $request
+     * @param  App\Services\LineageManager  $service
+     * @param  string                       $slug
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function postEditRogueLineage(Request $request, LineageManager $service, $id)
+    {
+        $this->lineage = CharacterLineage::where('id', $id)->first();
+        if (!$this->lineage) abort(404);
+        return $this->postEditLineage($request, $service, $id, false);
     }
 
     /**

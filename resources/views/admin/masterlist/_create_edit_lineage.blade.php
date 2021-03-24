@@ -14,7 +14,7 @@
             <div class="col-sm-6">
                 {!! Form::label('owner_id', "Character".((isset($isMyo) && $isMyo == true) ? "/MYO" : "")." (Character Lineages)") !!}
                 {!! add_help('The character or MYO slot that owns this lineage.') !!}
-                {!! Form::select('owner_id', $ownerOptions, isset($lineage) ? $lineage->character_id : null, ['class' => 'lineage-owner-data form-control mr-2', 'placeholder' => 'Select Character']) !!}
+                {!! Form::select('owner_id', $ownerOptions, isset($lineage) ? $lineage->character_id : (isset($ownerOverride) ? $ownerOverride : null), ['class' => 'lineage-owner-data form-control mr-2', 'placeholder' => 'Select Character']) !!}
             </div>
             <div class="col-sm-6">
                 {!! Form::label('owner_name', "Name (Characterless/Rogue Lineages)") !!}
@@ -61,7 +61,7 @@
 </div>
 
 {{-- Child and Children Data, does NOT appear on MYOs. --}}
-@if(!(isset($isMyo) && $isMyo == true))
+@if(!(isset($isMyo) && $isMyo == true) && isset($lineage) && $lineage)
     {!! Form::label('child', "Children") . add_help('Children can be any myo, character or rogue.') !!}
     <div class="form-group">
         <div id="childList">
