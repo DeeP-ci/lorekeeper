@@ -9,7 +9,7 @@
     @if(Auth::check() && Auth::user()->hasPower('manage_masterlist'))
         <li class="sidebar-section">
             <div class="sidebar-section-header">Manage</div>
-            <div class="sidebar-item"><a href="{{ 'admin/masterlist/edit/'. $lineage->id }}">ACP Edit</a></div>
+            <div class="sidebar-item"><a href="{{ url('admin/masterlist/edit/'. $lineage->id) }}">ACP Edit</a></div>
         </li>
     @endif
 </ul>
