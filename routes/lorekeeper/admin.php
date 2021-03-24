@@ -310,6 +310,7 @@ Route::group(['prefix' => 'masterlist', 'namespace' => 'Characters', 'middleware
     Route::get('lineages/create', 'CharacterLineageController@getCreateLineage');
     Route::post('lineages/create', 'CharacterLineageController@postCreateLineage');
     Route::get('lineages/edit/{id}', 'CharacterLineageController@getEditLineage');
+    Route::post('lineages/edit/{id}', 'CharacterLineageController@postEditLineage');
     Route::get('lineages/delete/{id}', 'CharacterLineageController@getDeleteLineageModal');
     Route::post('lineages/delete/{id}', 'CharacterLineageController@postDeleteLineage');
 });
@@ -391,7 +392,6 @@ Route::group(['prefix' => 'myo', 'namespace' => 'Characters', 'middleware' => 'p
     Route::get('{id}/lineage', 'CharacterLineageController@getEditMyoLineage');
     Route::post('{id}/lineage', 'CharacterLineageController@getEditMyoLineage');
 });
-
 Route::group(['prefix' => 'rogue', 'namespace' => 'Characters', 'middleware' => 'power:manage_characters'], function() {
     # LINEAGE
     Route::get('{id}/lineage', 'CharacterLineageController@getEditRogueLineage');

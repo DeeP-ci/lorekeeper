@@ -85,6 +85,97 @@ class LineageManager extends Service
     }
 
     /**
+     * Edits a lineage
+     *
+     * @param  \App\Models\Character\CharacterLineage  $lineage
+     * @param  array                                   $data
+     * @param  \App\Models\User\User                   $user
+     * @return  bool
+     */
+    public function editLineage($lineage, $data, $user)
+    {
+        DB::beginTransaction();
+        try {
+            if($data['owner_id']) {
+                // If the character ID != new ID, we're changing owners.
+                if ($lineage->character_id != $data['owner_id']) {
+                    $character = Character::where('id', $data['owner_id'])->first();
+                    if (!$character) throw new \Exception("Couldn't find a character with that ID.");
+
+                    if (!$lineage->character_id && $character->is_myo_slot) throw new \Exception("Cannot set a MYO Slot as the new owner of this lineage.");
+
+                    $test = CharacterLineage::where('character_id', $data['owner_id'])->first();
+                    if ($test) throw new \Exception("Couldn't move the lineage to that character, as they already have a lineage.");
+                }
+                $lineage->character_id = $data['owner_id'];
+                $lineage->character_name = null;
+            } else {
+                // Rogues need names.
+                if (!$data['owner_name']) throw new \Exception("Rogue lineages need a name.");
+
+                $lineage->character_id = null;
+                $lineage->character_name = $data['owner_name'];
+            }
+            if (!$lineage) throw new \Exception("Something went wrong when trying to update ownership.");
+
+            $lineage->parents()->delete();
+            foreach($data['parent_type'] as $key => $type) {
+                $parentLineage = false;
+
+                if($type == "Character") {
+                    // Finds the first character that is not a myo slot with the ID specified.
+                    $parent = Character::where('is_myo_slot', false)->where('id', $data['parent_data'][$key])->first();
+                    $parentLineage = (!$parent) ? false : ((!$parent->lineage) ? CharacterLineage::create(['character_id' => $parent->id]) : $parent->lineage);
+                } else if($type == "Rogue") {
+                    // Finds the first lineage with the specified id.
+                    $parentLineage = CharacterLineage::where('id', $data['parent_data'][$key])->first();
+                } else if($type == "New") {
+                    // Create a lineage if there's data for it.
+                    if($data['parent_data'][$key] != "")
+                        $parentLineage = CharacterLineage::create(['character_name' => $data['parent_data'][$key]]);
+                }
+
+                if ($parentLineage) {
+                    $link = CharacterLineageLink::create(['lineage_id' => $lineage->id, 'parent_lineage_id' => $parentLineage->id]);
+                }
+            }
+
+            $lineage->children()->delete();
+            if(true || ($lineage->character && !$lineage->character->is_myo_slot)) {
+                foreach($data['child_type'] as $key => $type) {
+                    $childLineage = false;
+                    if($type == "Character") {
+                        // Finds the first character or myo with the ID specified.
+                        $child = Character::where('id', $data['child_data'][$key])->first();
+                        $childLineage = (!$child) ? false : ((!$child->lineage) ? CharacterLineage::create(['character_id' => $child->id]) : $child->lineage);
+                    } else if($type == "Rogue") {
+                        // Finds the first lineage with the specified id.
+                        $childLineage = CharacterLineage::where('id', $data['child_data'][$key])->first();
+                    } else if($type == "New") {
+                        // Create a lineage if there's data for it.
+                        if($data['child_data'][$key] != "")
+                            $childLineage = CharacterLineage::create(['character_name' => $data['child_data'][$key]]);
+                    }
+    
+                    if ($childLineage) {
+                        $link = CharacterLineageLink::create(['lineage_id' => $childLineage->id, 'parent_lineage_id' => $lineage->id]);
+                    }
+                }
+            }
+
+            // Save and update the logs.
+            $lineage->save();
+            if ($lineage->character_id != null)
+                $this->createLog($user->id, null, null, null, $lineage->character_id, 'Lineage Edited', '[#'.$lineage->id.']', 'character');
+
+            return $this->commitReturn($lineage);
+        } catch(\Exception $e) {
+            $this->setError('error', $e->getMessage());
+        }
+        return $this->rollbackReturn(false);
+    }
+
+    /**
      * Deletes a lineage
      *
      * @param  \App\Models\Character\CharacterLineage  $lineage

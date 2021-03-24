@@ -193,41 +193,27 @@ class CharacterLineageController extends Controller
     }
 
     /**
-     * Edit a character's lineage.
-     *
-     * @param  \Illuminate\Http\Request     $request
-     * @param  App\Services\LineageManager  $service
-     * @param  string                       $slug
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function postEditCharacterLineage(Request $request, LineageManager $service, $slug)
-    {
-        $this->character = Character::where('slug', $slug)->first();
-        if (!$this->character) abort(404);
-
-        $this->lineage = $this->character->lineage;
-        return $this->postEditLineage($request, $service);
-    }
-
-    /**
-     * Edit lineage.
+     * Edit a lineage in the ACP.
      *
      * @param  \Illuminate\Http\Request     $request
      * @param  App\Services\LineageManager  $service
      * @return \Illuminate\Contracts\Support\Renderable
      */
-    private function postEditLineage(Request $request, LineageManager $service)
+    public function postEditLineage(Request $request, LineageManager $service, $id, $acp = true)
     {
-        if (!isset($this->character) && !isset($this->lineage)) abort(404);
+        $lineage = CharacterLineage::where('id', $id)->first();
+        if (!$lineage) abort(404);
+
         $data = $request->only([
+            'owner_id', 'owner_name',
             'parent_type', 'parent_data',
             'child_type', 'child_data',
         ]);
-        if ($lineage = $service->editLineage($data, Auth::user())) {
+
+        if ($lineage = $service->editLineage($lineage, $data, Auth::user())) {
             flash('Lineage edited successfully.')->success();
-            return redirect()->to($lineage->url);
-        }
-        else {
+            return redirect()->to($acp ? 'admin/masterlist/lineages/edit/'.$lineage->id : $lineage->url);
+        } else {
             foreach($service->errors()->getMessages()['error'] as $error) flash($error)->error();
         }
         return redirect()->back()->withInput();
