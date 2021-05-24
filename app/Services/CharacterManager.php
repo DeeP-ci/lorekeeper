@@ -14,6 +14,7 @@ use File;
 use App\Services\CurrencyManager;
 use App\Services\InventoryManager;
 
+use Illuminate\Support\Arr;
 use App\Models\User\User;
 use App\Models\User\UserItem;
 use App\Models\Character\Character;
@@ -89,8 +90,7 @@ class CharacterManager extends Service
 
         try {
             if(!$isMyo && Character::where('slug', $data['slug'])->exists()) throw new \Exception("Please enter a unique character code.");
-
-            if(!(isset($data['user_id']) && $data['user_id']) && !(isset($data['owner_alias']) && $data['owner_alias']))
+            if(!(isset($data['user_id']) && $data['user_id']) && !(isset($data['owner_url']) && $data['owner_url']))
                 throw new \Exception("Please select an owner.");
             if(!$isMyo)
             {
@@ -106,18 +106,17 @@ class CharacterManager extends Service
             else $data['subtype_id'] = null;
 
             // Get owner info
-            $recipient = null;
+            $url = null;
             $recipientId = null;
-            $alias = null;
             if(isset($data['user_id']) && $data['user_id']) $recipient = User::find($data['user_id']);
-            elseif(isset($data['owner_alias']) && $data['owner_alias']) $recipient = User::where('alias', $data['owner_alias'])->first();
+            elseif(isset($data['owner_url']) && $data['owner_url']) $recipient = checkAlias($data['owner_url']);
 
-            if($recipient) {
+            if(is_object($recipient)) {
                 $recipientId = $recipient->id;
                 $data['user_id'] = $recipient->id;
             }
             else {
-                $alias = $data['owner_alias'];
+                $url = $recipient;
             }
 
             // Create character
@@ -138,23 +137,22 @@ class CharacterManager extends Service
 
             // Add a log for the character
             // This logs all the updates made to the character
-            $this->createLog($user->id, null, $recipientId, $alias, $character->id, $isMyo ? 'MYO Slot Created' : 'Character Created', 'Initial upload', 'character');
+            $this->createLog($user->id, null, $recipientId, $url, $character->id, $isMyo ? 'MYO Slot Created' : 'Character Created', 'Initial upload', 'character');
 
             // Add a log for the user
             // This logs ownership of the character
-            $this->createLog($user->id, null, $recipientId, $alias, $character->id, $isMyo ? 'MYO Slot Created' : 'Character Created', 'Initial upload', 'user');
+            $this->createLog($user->id, null, $recipientId, $url, $character->id, $isMyo ? 'MYO Slot Created' : 'Character Created', 'Initial upload', 'user');
 
             // Update the user's FTO status and character count
-            if($recipient) {
+            if(is_object($recipient)) {
                 if(!$isMyo) {
                     $recipient->settings->is_fto = 0; // MYO slots don't affect the FTO status - YMMV
                 }
                 $recipient->settings->save();
             }
 
-
             // If the recipient has an account, send them a notification
-            if($recipient && $user->id != $recipient->id) {
+            if(is_object($recipient) && $user->id != $recipient->id) {
                 Notifications::create($isMyo ? 'MYO_GRANT' : 'CHARACTER_UPLOAD', $recipient, [
                     'character_url' => $character->url,
                 ] + ($isMyo ?
@@ -190,14 +188,14 @@ class CharacterManager extends Service
                 $data['rarity_id'] = isset($data['rarity_id']) && $data['rarity_id'] ? $data['rarity_id'] : null;
             }
 
-            $characterData = array_only($data, [
+            $characterData = Arr::only($data, [
                 'character_category_id', 'rarity_id', 'user_id',
                 'number', 'slug', 'description',
                 'sale_value', 'transferrable_at', 'is_visible'
             ]);
 
             $characterData['name'] = ($isMyo && isset($data['name'])) ? $data['name'] : null;
-            $characterData['owner_alias'] = isset($characterData['user_id']) ? null : $data['owner_alias'];
+            $characterData['owner_url'] = isset($characterData['user_id']) ? null : $data['owner_url'];
             $characterData['is_sellable'] = isset($data['is_sellable']);
             $characterData['is_tradeable'] = isset($data['is_tradeable']);
             $characterData['is_giftable'] = isset($data['is_giftable']);
@@ -249,7 +247,7 @@ class CharacterManager extends Service
                     unset($data['use_cropper']);
                 }
             }
-            $imageData = array_only($data, [
+            $imageData = Arr::only($data, [
                 'species_id', 'subtype_id', 'rarity_id', 'use_cropper',
                 'x0', 'x1', 'y0', 'y1',
             ]);
@@ -266,14 +264,30 @@ class CharacterManager extends Service
 
             $image = CharacterImage::create($imageData);
 
+            // Check if entered url(s) have aliases associated with any on-site users
+            foreach($data['designer_url'] as $key=>$url) {
+                $recipient = checkAlias($url, false);
+                if(is_object($recipient)) {
+                    $data['designer_id'][$key] = $recipient->id;
+                    $data['designer_url'][$key] = null;
+                }
+            }
+            foreach($data['artist_url'] as $key=>$url) {
+                $recipient = checkAlias($url, false);
+                if(is_object($recipient)) {
+                    $data['artist_id'][$key] = $recipient->id;
+                    $data['artist_url'][$key] = null;
+                }
+            }
+
             // Check that users with the specified id(s) exist on site
-            foreach($data['designer_alias'] as $id) {
+            foreach($data['designer_id'] as $id) {
                 if(isset($id) && $id) {
                     $user = User::find($id);
                     if(!$user) throw new \Exception('One or more designers is invalid.');
                 }
             }
-            foreach($data['artist_alias'] as $id) {
+            foreach($data['artist_id'] as $id) {
                 if(isset($id) && $id) {
                     $user = $user = User::find($id);
                     if(!$user) throw new \Exception('One or more artists is invalid.');
@@ -281,7 +295,7 @@ class CharacterManager extends Service
             }
 
             // Attach artists/designers
-            foreach($data['designer_alias'] as $key => $id) {
+            foreach($data['designer_id'] as $key => $id) {
                 if($id || $data['designer_url'][$key])
                     DB::table('character_image_creators')->insert([
                         'character_image_id' => $image->id,
@@ -290,7 +304,7 @@ class CharacterManager extends Service
                         'user_id' => $id
                     ]);
             }
-            foreach($data['artist_alias'] as $key => $id) {
+            foreach($data['artist_id'] as $key => $id) {
                 if($id || $data['artist_url'][$key])
                     DB::table('character_image_creators')->insert([
                         'character_image_id' => $image->id,
@@ -304,7 +318,7 @@ class CharacterManager extends Service
             $this->handleImage($data['image'], $image->imageDirectory, $image->imageFileName, null, isset($data['default_image']));
 
             // Save thumbnail first before processing full image
-            if(isset($data['use_cropper'])) $this->cropThumbnail(array_only($data, ['x0','x1','y0','y1']), $image, $isMyo);
+            if(isset($data['use_cropper'])) $this->cropThumbnail(Arr::only($data, ['x0','x1','y0','y1']), $image, $isMyo);
             else $this->handleImage($data['thumbnail'], $image->imageDirectory, $image->thumbnailFileName, null, isset($data['default_image']));
 
             // Process and save the image itself
@@ -468,6 +482,24 @@ class CharacterManager extends Service
         // Trim transparent parts of image.
         $image = Image::make($characterImage->imagePath . '/' . $characterImage->imageFileName)->trim('transparent');
 
+        if (Config::get('lorekeeper.settings.masterlist_image_automation') == 1)
+        {
+            // Make the image be square
+            $imageWidth = $image->width();
+            $imageHeight = $image->height();
+
+            if( $imageWidth > $imageHeight) {
+                // Landscape
+                $canvas = Image::canvas($image->width(), $image->width());
+                $image = $canvas->insert($image, 'center');
+            }
+            else {
+                // Portrait
+                $canvas = Image::canvas($image->height(), $image->height());
+                $image = $canvas->insert($image, 'center');
+            }
+        }
+
         if(Config::get('lorekeeper.settings.masterlist_image_format') != 'png' && Config::get('lorekeeper.settings.masterlist_image_format') != null && Config::get('lorekeeper.settings.masterlist_image_background') != null) {
             $canvas = Image::canvas($image->width(), $image->height(), Config::get('lorekeeper.settings.masterlist_image_background'));
             $image = $canvas->insert($image, 'center');
@@ -559,6 +591,24 @@ class CharacterManager extends Service
             // Trim transparent parts of image.
             $image->trim(isset($trimColor) && $trimColor ? 'top-left' : 'transparent');
 
+            if (Config::get('lorekeeper.settings.masterlist_image_automation') == 1)
+            {
+                // Make the image be square
+                $imageWidth = $image->width();
+                $imageHeight = $image->height();
+
+                if( $imageWidth > $imageHeight) {
+                    // Landscape
+                    $canvas = Image::canvas($image->width(), $image->width());
+                    $image = $canvas->insert($image, 'center');
+                }
+                else {
+                    // Portrait
+                    $canvas = Image::canvas($image->height(), $image->height());
+                    $image = $canvas->insert($image, 'center');
+                }
+            }
+
             $cropWidth = Config::get('lorekeeper.settings.masterlist_thumbnails.width');
             $cropHeight = Config::get('lorekeeper.settings.masterlist_thumbnails.height');
 
@@ -613,22 +663,28 @@ class CharacterManager extends Service
                     });
                 }
             }
-            $xOffset = 0 + (($points['x0'] - $trimOffsetX) > 0 ? ($points['x0'] - $trimOffsetX) : 0);
-            if(($xOffset + $cropWidth) > $image->width()) $xOffsetNew = $cropWidth - ($image->width() - $xOffset);
-            if(isset($xOffsetNew)) if(($xOffsetNew + $cropWidth) > $image->width()) $xOffsetNew = $image->width() - $cropWidth;
-            $yOffset = 0 + (($points['y0'] - $trimOffsetY) > 0 ? ($points['y0'] - $trimOffsetY) : 0);
-            if(($yOffset + $cropHeight) > $image->height()) $yOffsetNew = $cropHeight - ($image->height() - $yOffset);
-            if(isset($yOffsetNew)) if(($yOffsetNew + $cropHeight) > $image->height()) $yOffsetNew = $image->height() - $cropHeight;
+            if (Config::get('lorekeeper.settings.masterlist_image_automation') == 0)
+            {
+                $xOffset = 0 + (($points['x0'] - $trimOffsetX) > 0 ? ($points['x0'] - $trimOffsetX) : 0);
+                if(($xOffset + $cropWidth) > $image->width()) $xOffsetNew = $cropWidth - ($image->width() - $xOffset);
+                if(isset($xOffsetNew)) if(($xOffsetNew + $cropWidth) > $image->width()) $xOffsetNew = $image->width() - $cropWidth;
+                $yOffset = 0 + (($points['y0'] - $trimOffsetY) > 0 ? ($points['y0'] - $trimOffsetY) : 0);
+                if(($yOffset + $cropHeight) > $image->height()) $yOffsetNew = $cropHeight - ($image->height() - $yOffset);
+                if(isset($yOffsetNew)) if(($yOffsetNew + $cropHeight) > $image->height()) $yOffsetNew = $image->height() - $cropHeight;
 
-            // Crop according to the selected area
-            $image->crop($cropWidth, $cropHeight, isset($xOffsetNew) ? $xOffsetNew : $xOffset, isset($yOffsetNew) ? $yOffsetNew : $yOffset);
+                // Crop according to the selected area
+                $image->crop($cropWidth, $cropHeight, isset($xOffsetNew) ? $xOffsetNew : $xOffset, isset($yOffsetNew) ? $yOffsetNew : $yOffset);
+            }
         }
         else {
             $cropWidth = $points['x1'] - $points['x0'];
             $cropHeight = $points['y1'] - $points['y0'];
 
-            // Crop according to the selected area
-            $image->crop($cropWidth, $cropHeight, $points['x0'], $points['y0']);
+            if (Config::get('lorekeeper.settings.masterlist_image_automation') == 0)
+            {
+                // Crop according to the selected area
+                $image->crop($cropWidth, $cropHeight, $points['x0'], $points['y0']);
+            }
 
             // Resize to fit the thumbnail size
             $image->resize(Config::get('lorekeeper.settings.masterlist_thumbnails.width'), Config::get('lorekeeper.settings.masterlist_thumbnails.height'));
@@ -642,8 +698,9 @@ class CharacterManager extends Service
      * Creates a character log.
      *
      * @param  int     $senderId
+     * @param  string  $senderUrl
      * @param  int     $recipientId
-     * @param  string  $recipientAlias
+     * @param  string  $recipientUrl
      * @param  int     $characterId
      * @param  string  $type
      * @param  string  $data
@@ -653,14 +710,14 @@ class CharacterManager extends Service
      * @param  string  $newData
      * @return bool
      */
-    public function createLog($senderId, $senderAlias, $recipientId, $recipientAlias, $characterId, $type, $data, $logType, $isUpdate = false, $oldData = null, $newData = null)
+    public function createLog($senderId, $senderUrl, $recipientId, $recipientUrl, $characterId, $type, $data, $logType, $isUpdate = false, $oldData = null, $newData = null)
     {
         return DB::table($logType == 'character' ? 'character_log' : 'user_character_log')->insert(
             [
                 'sender_id' => $senderId,
-                'sender_alias' => $senderAlias,
+                'sender_url' => $senderUrl,
                 'recipient_id' => $recipientId,
-                'recipient_alias' => $recipientAlias,
+                'recipient_url' => $recipientUrl,
                 'character_id' => $characterId,
                 'log' => $type . ($data ? ' (' . $data . ')' : ''),
                 'log_type' => $type,
@@ -715,15 +772,15 @@ class CharacterManager extends Service
 
             // Add a log for the character
             // This logs all the updates made to the character
-            $this->createLog($user->id, null, $character->user_id, $character->user_id ? $character->user->alias : $character->owner_alias, $character->id, 'Character Image Uploaded', '[#'.$image->id.']', 'character');
+            $this->createLog($user->id, null, $character->user_id, ($character->user_id ? null : $character->owner_url), $character->id, 'Character Image Uploaded', '[#'.$image->id.']', 'character');
 
             // If the recipient has an account, send them a notification
             if($character->user && $user->id != $character->user_id && $character->is_visible) {
                 Notifications::create('IMAGE_UPLOAD', $character->user, [
                     'character_url' => $character->url,
                     'character_slug' => $character->slug,
-					'character_name' => $character->name,
-					'sender_url' => $user->url,
+                    'character_name' => $character->name,
+                    'sender_url' => $user->url,
                     'sender_name' => $user->name
                 ]);
             }
@@ -866,14 +923,30 @@ class CharacterManager extends Service
             // Clear old artists/designers
             $image->creators()->delete();
 
+            // Check if entered url(s) have aliases associated with any on-site users
+            foreach($data['designer_url'] as $key=>$url) {
+                $recipient = checkAlias($url, false);
+                if(is_object($recipient)) {
+                    $data['designer_id'][$key] = $recipient->id;
+                    $data['designer_url'][$key] = null;
+                }
+            }
+            foreach($data['artist_url'] as $key=>$url) {
+                $recipient = checkAlias($url, false);
+                if(is_object($recipient)) {
+                    $data['artist_id'][$key] = $recipient->id;
+                    $data['artist_url'][$key] = null;
+                }
+            }
+
             // Check that users with the specified id(s) exist on site
-            foreach($data['designer_alias'] as $id) {
+            foreach($data['designer_id'] as $id) {
                 if(isset($id) && $id) {
                     $user = User::find($id);
                     if(!$user) throw new \Exception('One or more designers is invalid.');
                 }
             }
-            foreach($data['artist_alias'] as $id) {
+            foreach($data['artist_id'] as $id) {
                 if(isset($id) && $id) {
                     $user = $user = User::find($id);
                     if(!$user) throw new \Exception('One or more artists is invalid.');
@@ -881,7 +954,7 @@ class CharacterManager extends Service
             }
 
             // Attach artists/designers
-            foreach($data['designer_alias'] as $key => $id) {
+            foreach($data['designer_id'] as $key => $id) {
                 if($id || $data['designer_url'][$key])
                     DB::table('character_image_creators')->insert([
                         'character_image_id' => $image->id,
@@ -890,7 +963,7 @@ class CharacterManager extends Service
                         'user_id' => $id
                     ]);
             }
-            foreach($data['artist_alias'] as $key => $id) {
+            foreach($data['artist_id'] as $key => $id) {
                 if($id || $data['artist_url'][$key])
                     DB::table('character_image_creators')->insert([
                         'character_image_id' => $image->id,
@@ -961,7 +1034,7 @@ class CharacterManager extends Service
 
             $isMyo = $image->character->is_myo_slot ? true : false;
             // Save thumbnail
-            if(isset($data['use_cropper'])) $this->cropThumbnail(array_only($data, ['x0','x1','y0','y1']), $image, $isMyo);
+            if(isset($data['use_cropper'])) $this->cropThumbnail(Arr::only($data, ['x0','x1','y0','y1']), $image, $isMyo);
             else $this->handleImage($data['thumbnail'], $image->thumbnailPath, $image->thumbnailFileName);
 
             // Process and save the image itself
@@ -1162,7 +1235,7 @@ class CharacterManager extends Service
         try {
             if(!$character->is_myo_slot && Character::where('slug', $data['slug'])->where('id', '!=', $character->id)->exists()) throw new \Exception("Character code must be unique.");
 
-            $characterData = array_only($data, [
+            $characterData = Arr::only($data, [
                 'character_category_id',
                 'number', 'slug',
             ]);
@@ -1580,9 +1653,19 @@ class CharacterManager extends Service
             if(!$recipient) throw new \Exception("Invalid user selected.");
             if($recipient->is_banned) throw new \Exception("Cannot transfer character to a banned member.");
 
+            // deletes any pending design drafts
+            foreach($character->designUpdate as $update)
+            {
+                if($update->status == 'Draft')
+                {
+                   if(!$this->rejectRequest('Cancelled by '.$user->displayName.' in order to transfer character to another user', $update, $user, true, false)) throw new \Exception('Could not cancel pending request.');
+                }
+            }
+
             $queueOpen = Settings::get('open_transfers_queue');
 
             CharacterTransfer::create([
+                'user_reason' => $data['user_reason'],  # pulls from this characters user_reason collum
                 'character_id' => $character->id,
                 'sender_id' => $user->id,
                 'recipient_id' => $recipient->id,
@@ -1625,9 +1708,9 @@ class CharacterManager extends Service
                 if(!$recipient) throw new \Exception("Invalid user selected.");
                 if($character->user_id == $recipient->id) throw new \Exception("Cannot transfer a character to the same user.");
             }
-            else if(isset($data['recipient_alias']) && $data['recipient_alias']) {
-                // Transferring to a dA user
-                $recipient = $data['recipient_alias'];
+            else if(isset($data['recipient_url']) && $data['recipient_url']) {
+                // Transferring to an off-site user
+                $recipient = checkAlias($data['recipient_url']);
             }
             else throw new \Exception("Please enter a recipient for the transfer.");
 
@@ -1637,6 +1720,14 @@ class CharacterManager extends Service
                 $transfer->status = 'Canceled';
                 $transfer->reason = 'Transfer canceled by '.$user->displayName.' in order to transfer character to another user';
                 $transfer->save();
+            }
+            // deletes any pending design drafts
+            foreach($character->designUpdate as $update)
+            {
+                if($update->status == 'Draft')
+                {
+                   if(!$this->rejectRequest('Cancelled by '.$user->displayName.' in order to transfer character to another user', $update, $user, true, false)) throw new \Exception('Could not cancel pending request.');
+                }
             }
 
             $sender = $character->user;
@@ -1650,8 +1741,8 @@ class CharacterManager extends Service
                     'character_slug' => $character->slug,
                     'sender_name' => $user->name,
                     'sender_url' => $user->url,
-                    'recipient_name' => is_object($recipient) ? $recipient->name : $recipient . '@dA',
-                    'recipient_url' => is_object($recipient) ? $recipient->url : 'http://www.deviantart.com/' . $recipient,
+                    'recipient_name' => is_object($recipient) ? $recipient->name : prettyProfileName($recipient),
+                    'recipient_url' => is_object($recipient) ? $recipient->url : $recipient,
                 ]);
             }
             if(is_object($recipient)) {
@@ -1861,9 +1952,10 @@ class CharacterManager extends Service
     public function moveCharacter($character, $recipient, $data, $cooldown = -1, $logType = null)
     {
         $sender = $character->user;
+        if(!$sender) $sender = $character->owner_url;
 
         // Update character counts if the sender has an account
-        if($sender) {
+        if(is_object($sender)) {
             $sender->settings->save();
         }
 
@@ -1876,10 +1968,10 @@ class CharacterManager extends Service
         $character->sort = 0;
         if(is_object($recipient)) {
             $character->user_id = $recipient->id;
-            $character->owner_alias = null;
+            $character->owner_url = null;
         }
         else {
-            $character->owner_alias = $recipient;
+            $character->owner_url = $recipient;
             $character->user_id = null;
         }
         if ($cooldown < 0) {
@@ -1905,7 +1997,7 @@ class CharacterManager extends Service
             ]);
         }
 
-        if(Config::get('lorekeeper.settings.reset_character_profile_on_transfer')) {
+        if(Config::get('lorekeeper.settings.reset_character_profile_on_transfer') && !$character->is_myo_slot) {
             // Reset name and profile
             $character->update(['name' => null]);
 
@@ -1918,10 +2010,10 @@ class CharacterManager extends Service
 
         // Add a log for the ownership change
         $this->createLog(
-            $sender ? $sender->id : null,
-            $sender ? null : $character->owner_alias,
+            is_object($sender) ? $sender->id : null,
+            is_object($sender) ? null : $sender,
             $recipient && is_object($recipient) ? $recipient->id : null,
-            $recipient && is_object($recipient) ? $recipient->alias : ($recipient ? : null),
+            $recipient && is_object($recipient) ? $recipient->url : ($recipient ? : null),
             $character->id, $logType ? $logType : ($character->is_myo_slot ? 'MYO Slot Transferred' : 'Character Transferred'), $data, 'user');
     }
 
@@ -2033,7 +2125,7 @@ class CharacterManager extends Service
             if(!$isAdmin || ($isAdmin && isset($data['modify_thumbnail']))) {
                 $imageData = [];
                 if(isset($data['use_cropper'])) {
-                    $imageData = array_only($data, [
+                    $imageData = Arr::only($data, [
                         'use_cropper',
                         'x0', 'x1', 'y0', 'y1',
                     ]);
@@ -2050,13 +2142,13 @@ class CharacterManager extends Service
             $request->artists()->delete();
 
             // Check that users with the specified id(s) exist on site
-            foreach($data['designer_alias'] as $id) {
+            foreach($data['designer_id'] as $id) {
                 if(isset($id) && $id) {
                     $user = User::find($id);
                     if(!$user) throw new \Exception('One or more designers is invalid.');
                 }
             }
-            foreach($data['artist_alias'] as $id) {
+            foreach($data['artist_id'] as $id) {
                 if(isset($id) && $id) {
                     $user = $user = User::find($id);
                     if(!$user) throw new \Exception('One or more artists is invalid.');
@@ -2064,7 +2156,7 @@ class CharacterManager extends Service
             }
 
             // Attach artists/designers
-            foreach($data['designer_alias'] as $key => $id) {
+            foreach($data['designer_id'] as $key => $id) {
                 if($id || $data['designer_url'][$key])
                     DB::table('character_image_creators')->insert([
                         'character_image_id' => $request->id,
@@ -2074,7 +2166,7 @@ class CharacterManager extends Service
                         'user_id' => $id
                     ]);
             }
-            foreach($data['artist_alias'] as $key => $id) {
+            foreach($data['artist_id'] as $key => $id) {
                 if($id || $data['artist_url'][$key])
                     DB::table('character_image_creators')->insert([
                         'character_image_id' => $request->id,
@@ -2091,7 +2183,7 @@ class CharacterManager extends Service
             // Save thumbnail
             if(!$isAdmin || ($isAdmin && isset($data['modify_thumbnail']))) {
                 if(isset($data['use_cropper']))
-                    $this->cropThumbnail(array_only($data, ['x0','x1','y0','y1']), $request);
+                    $this->cropThumbnail(Arr::only($data, ['x0','x1','y0','y1']), $request);
                 else if(isset($data['thumbnail']))
                     $this->handleImage($data['thumbnail'], $request->imageDirectory, $request->thumbnailFileName);
             }
@@ -2184,8 +2276,8 @@ class CharacterManager extends Service
 
             $request->has_addons = 1;
             $request->data = json_encode([
-                'user' => array_only(getDataReadyAssets($userAssets), ['user_items','currencies']),
-                'character' => array_only(getDataReadyAssets($characterAssets), ['currencies'])
+                'user' => Arr::only(getDataReadyAssets($userAssets), ['user_items','currencies']),
+                'character' => Arr::only(getDataReadyAssets($characterAssets), ['currencies'])
             ]);
             $request->save();
 
@@ -2440,8 +2532,8 @@ class CharacterManager extends Service
             $request->save();
 
             // Add a log for the character and user
-            $this->createLog($user->id, null, $request->character->user_id, $request->character->user->alias, $request->character->id, $request->update_type == 'MYO' ? 'MYO Design Approved' : 'Character Design Updated', '[#'.$image->id.']', 'character');
-            $this->createLog($user->id, null, $request->character->user_id, $request->character->user->alias, $request->character->id, $request->update_type == 'MYO' ? 'MYO Design Approved' : 'Character Design Updated', '[#'.$image->id.']', 'user');
+            $this->createLog($user->id, null, $request->character->user_id, $request->character->user->url, $request->character->id, $request->update_type == 'MYO' ? 'MYO Design Approved' : 'Character Design Updated', '[#'.$image->id.']', 'character');
+            $this->createLog($user->id, null, $request->character->user_id, $request->character->user->url, $request->character->id, $request->update_type == 'MYO' ? 'MYO Design Approved' : 'Character Design Updated', '[#'.$image->id.']', 'user');
 
             // If this is for a MYO, set user's FTO status and the MYO status of the slot
             // and clear the character's name
@@ -2487,7 +2579,7 @@ class CharacterManager extends Service
      * @param  bool                                         $forceReject
      * @return  bool
      */
-    public function rejectRequest($data, $request, $user, $forceReject = false)
+    public function rejectRequest($data, $request, $user, $forceReject = false, $notification = true)
     {
         DB::beginTransaction();
 
@@ -2534,12 +2626,15 @@ class CharacterManager extends Service
             $request->status = 'Rejected';
             $request->save();
 
-            // Notify the user
-            Notifications::create('DESIGN_REJECTED', $request->user, [
-                'design_url' => $request->url,
-                'character_url' => $request->character->url,
-                'name' => $request->character->fullName
-            ]);
+            if($notification)
+            {
+                // Notify the user
+                Notifications::create('DESIGN_REJECTED', $request->user, [
+                    'design_url' => $request->url,
+                    'character_url' => $request->character->url,
+                    'name' => $request->character->fullName
+                ]);
+            }
 
             return $this->commitReturn(true);
         } catch(\Exception $e) {
