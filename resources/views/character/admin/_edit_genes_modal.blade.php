@@ -70,9 +70,11 @@
             @endif
         </div>
         <div class="form-group inline">
-            <a href="#" class="add-genetics-row btn btn-primary mb-2">Add Gene</a>
+            <a href="#" class="add-genetics-row btn btn-primary">Add Gene</a>
         </div>
     </div>
+
+    <p class="alert alert-info">For chromosomally linked genes, note that the breeding roller cares about which order the genes are placed in. Chromosomally linked genes in the same column (left for matrilineal inheritance, right for patrilineal inheritance) will always pass together!</p>
 
     <div class="text-right">
         {!! Form::submit($genome->id ? 'Edit' : 'Create', ['class' => 'btn btn-primary']) !!}

@@ -1,6 +1,6 @@
 @extends('admin.layout')
 
-@section('admin-title') Trait Categories @endsection
+@section('admin-title') Sort Gene Groups @endsection
 
 @section('admin-content')
 {!! breadcrumbs(['Admin Panel' => 'admin', 'Genetics' => 'admin/genetics/genes', 'Sort Groups' => 'admin/data/genetics/sort']) !!}
@@ -9,11 +9,15 @@
     Gene Groups
     <div class="float-right">
         <a class="btn btn-primary" href="{{ url('admin/genetics/create') }}"><i class="fas fa-plus mr-1"></i> New</a>
-        <a class="btn btn-primary ml-1" href="{{ url('admin/genetics/genes') }}"><i class="fas fa-search mr-1"></i> Search</a>
+        <a class="btn btn-primary ml-1" href="{{ url('admin/genetics/genes') }}"><i class="fas fa-arrow-left mr-1"></i> List</a>
+        <a class="btn btn-secondary ml-1" href="{{ url('admin/genetics/chromosomes') }}"><i class="fas fa-folder mr-1"></i> Chromosomes</a>
     </div>
 </h1>
 
-<p>This is a list of gene groups (loci) that will be used to create and sort assignable genetics. The sorting order reflects the order in which the gene categories will be displayed in the inventory, as well as on the world pages.</p>
+<p>
+    This is a list of gene groups (loci) that will be used to create and sort assignable genetics.
+    The sort order reflects the order in which genes will display in a character's genome, or on world pages.
+</p>
 
 @if(!count($categories))
     <p>No gene groups found.</p>

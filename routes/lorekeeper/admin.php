@@ -92,6 +92,17 @@ Route::group(['prefix' => 'genetics', 'namespace' => 'Data', 'middleware' => ['p
         Route::post('delete/{id}', 'GeneticsController@postDeleteLoci');
         Route::post('delete-allele/{id}', 'GeneticsController@postDeleteAllele');
 
+        Route::get('chromosomes', 'GeneticsController@getLociGroups');
+        Route::get('chromosome/sort', 'GeneticsController@getSortLociGroups');
+        Route::get('chromosome/create', 'GeneticsController@getCreateLociGroup');
+        Route::get('chromosome/edit/{id}', 'GeneticsController@getEditLociGroup');
+        Route::get('chromosome/delete/{id}', 'GeneticsController@getDeleteLociGroup');
+
+        Route::post('chromosome/sort', 'GeneticsController@postSortLociGroups');
+        Route::post('chromosome/create', 'GeneticsController@postCreateEditLociGroup');
+        Route::post('chromosome/edit/{id}', 'GeneticsController@postCreateEditLociGroup');
+        Route::post('chromosome/delete/{id}', 'GeneticsController@postDeleteLociGroup');
+
     });
 
     # ROLLERS & SUCH

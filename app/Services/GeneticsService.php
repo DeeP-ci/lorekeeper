@@ -12,6 +12,7 @@ use App\Models\Feature\FeatureCategory;
 use App\Models\Feature\Feature;
 use App\Models\Genetics\Loci;
 use App\Models\Genetics\LociAllele;
+use App\Models\Genetics\LociGroup;
 use App\Models\Species\Species;
 use App\Models\Species\Subtype;
 
@@ -38,7 +39,12 @@ class GeneticsService extends Service
             if (!isset($data['length']) || $data['length'] == null || $data['length'] <= 0) throw new \Exception("Must have a length.");
             if ($data['length'] > 255) throw new \Exception("Length must be less than 256.");
 
-            if (!isset($data['chromosome']) || $data['chromosome'] <= 0) $data['chromosome'] = null;
+            if (isset($data['loci_group_id']))
+                $data['loci_group_id'] = LociGroup::find($data['loci_group_id']) ? $data['loci_group_id'] : null;
+            else {
+                $data['loci_group_id'] = null;
+            }
+
             if (!isset($data['default']) || $data['default'] < 0) $data['default'] = 0;
 
             if (isset($data['description'])) $data['parsed_description'] = parse($data['description']);
@@ -79,7 +85,11 @@ class GeneticsService extends Service
             if ($data['length'] > 255) throw new \Exception("Length must be less than 256.");
 
             // Chromosome
-            if (!isset($data['chromosome']) || $data['chromosome'] <= 0) $data['chromosome'] = null;
+            if (isset($data['loci_group_id']))
+                $data['loci_group_id'] = LociGroup::find($data['loci_group_id']) ? $data['loci_group_id'] : null;
+            else {
+                $data['loci_group_id'] = null;
+            }
 
             // Default
             if (!isset($data['default']) || $data['default'] < 0) $data['default'] = 0;
@@ -224,6 +234,109 @@ class GeneticsService extends Service
             CharacterGenomeGene::where('loci_allele_id', $target->id)->update(['loci_allele_id' => $replacement->id]);
             $target->delete();
 
+            return $this->commitReturn(true);
+        } catch(\Exception $e) {
+            $this->setError('error', $e->getMessage());
+        }
+        return $this->rollbackReturn(false);
+    }
+
+    /**
+     * Create a loci group / chromosome.
+     *
+     * @param  array                            $data
+     * @param  \App\Models\User\User            $user
+     * @return \App\Models\Feature\LociGroup|bool
+     */
+    public function createLociGroup($data, $user)
+    {
+        DB::beginTransaction();
+
+        try {
+            if (!isset($data['name']) || $data['name'] == null || $data['name'] == "") throw new \Exception("Chromosomes must have a name.");
+            if (isset($data['description'])) $data['parsed_description'] = parse($data['description']);
+            $data['is_visible'] = isset($data['is_visible']) ? $data['is_visible'] == true : false;
+
+            $chromosome = LociGroup::create($data);
+            return $this->commitReturn($chromosome);
+        } catch(\Exception $e) {
+            $this->setError('error', $e->getMessage());
+        }
+        return $this->rollbackReturn(false);
+    }
+
+    /**
+     * Update a loci group / chromosome.
+     *
+     * @param  \App\Models\Feature\LociGroup    $chromosome
+     * @param  array                            $data
+     * @param  \App\Models\User\User            $user
+     * @return \App\Models\Feature\LociGroup|bool
+     */
+    public function updateLociGroup($chromosome, $data, $user)
+    {
+        DB::beginTransaction();
+
+        try {
+            if (!isset($data['name']) || $data['name'] == null || $data['name'] == "") throw new \Exception("Chromosomes must have a name.");
+            if (isset($data['description']))
+            {
+                $data['parsed_description'] = parse($data['description']);
+            }
+            else
+            {
+                $data['description'] = null;
+                $data['parsed_description'] = null;
+            }
+            $data['is_visible'] = isset($data['is_visible']) ? $data['is_visible'] == true : false;
+
+            $chromosome->update($data);
+            return $this->commitReturn($chromosome);
+        } catch(\Exception $e) {
+            $this->setError('error', $e->getMessage());
+        }
+        return $this->rollbackReturn(false);
+    }
+    /**
+     * Updates loci group / chromosome sort order.
+     *
+     * @param  array    $data
+     * @return bool
+     */
+    public function sortLociGroup($data)
+    {
+        DB::beginTransaction();
+        try {
+            // explode the sort array and reverse it since the order is inverted
+            $sort = array_reverse(explode(',', $data));
+            foreach($sort as $key => $s)
+            {
+                LociGroup::where('id', $s)->update(['sort' => $key]);
+            }
+            return $this->commitReturn(true);
+        } catch(\Exception $e) {
+            $this->setError('error', $e->getMessage());
+        }
+        return $this->rollbackReturn(false);
+    }
+
+    /**
+     * Deletes a loci group / chromosome, and remove associations between the group and its grouped loci.
+     *
+     * @param  \App\Models\Feature\LociGroup    $chromosome
+     * @return bool
+     */
+    public function deleteLociGroup($chromosome)
+    {
+        DB::beginTransaction();
+        try {
+            foreach ($chromosome->locis as $loci)
+            {
+                $loci->update([
+                    'loci_group_id' => null,
+                ]);
+            }
+            $chromosome->delete();
             return $this->commitReturn(true);
         } catch(\Exception $e) {
             $this->setError('error', $e->getMessage());

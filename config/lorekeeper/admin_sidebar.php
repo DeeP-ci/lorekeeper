@@ -133,6 +133,10 @@ return [
                 'url' => 'admin/genetics/genes'
             ],
             [
+                'name' => 'Chromosomes',
+                'url' => 'admin/genetics/chromosomes'
+            ],
+            [
                 'name' => 'Breeding Roller',
                 'url' => 'admin/genetics/roller'
             ],

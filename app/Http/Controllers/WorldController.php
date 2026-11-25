@@ -17,6 +17,7 @@ use App\Models\Feature\FeatureCategory;
 use App\Models\Feature\Feature;
 use App\Models\Character\CharacterCategory;
 use App\Models\Genetics\Loci;
+use App\Models\Genetics\LociGroup;
 use App\Models\Prompt\PromptCategory;
 use App\Models\Prompt\Prompt;
 use App\Models\Shop\Shop;
@@ -89,17 +90,44 @@ class WorldController extends Controller
         $query = Loci::query();
         if (!(Auth::user() && Auth::user()->hasPower('view_hidden_genetics'))) $query->visible();
 
+        $chromosomes = LociGroup::query();
+        if (!(Auth::user() && Auth::user()->hasPower('view_hidden_genetics'))) $chromosomes->visible();
+
         $data = $request->only([
             'name',
             'variant',
+            'chromosome',
         ]);
 
-        if(isset($data['variant']) && $data['variant'] != 'none') $query->where('type', $data['variant']);
+        if(isset($data['variant']) && (
+            $data['variant'] == 'gene'
+            || $data['variant'] == 'gradient'
+            || $data['variant'] == 'numeric'
+        )) $query->where('type', $data['variant']);
         if(isset($data['name']) && $data['name'] != '') $query->where('name', 'LIKE', '%'.$data['name'].'%');
 
+        $chromosome = null;
+        if(isset($data['chromosome']))
+        {
+            $chromosome = LociGroup::find($data['chromosome']);
+            if ($chromosome)
+            {
+                if ($chromosome->is_visible || (!$chromosome->is_visible && Auth::user() && Auth::user()->hasPower('view_hidden_genetics')))
+                {
+                    $query->where('loci_group_id', $chromosome->id);
+                }
+                else
+                {
+                    $chromosome = null;
+                }
+            }
+        }
+
         return view('world.genetics', [
+            'chromosome' => $chromosome,
             'genetics' => $query->orderBy('sort', 'DESC')->paginate(20)->appends($request->query()),
             'options' => [0 => "Any Type", 'gene' => "Standard", 'gradient' => "Gradient", 'numeric' => "Numeric"],
+            'chromosomeOptions' => [0 => "Any Chromosome"] + $chromosomes->orderBy('sort', 'desc')->pluck('name', 'id')->toArray(),
         ]);
     }
 

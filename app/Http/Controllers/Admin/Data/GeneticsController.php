@@ -11,6 +11,7 @@ use App\Models\Feature\Feature;
 use App\Models\Feature\FeatureCategory;
 use App\Models\Genetics\Loci;
 use App\Models\Genetics\LociAllele;
+use App\Models\Genetics\LociGroup;
 use App\Models\Rarity;
 use App\Models\Species\Species;
 use App\Models\User\User;
@@ -104,6 +105,7 @@ class GeneticsController extends Controller
         return view('admin.genetics.create_edit_loci', [
             'category' => new Loci,
             'defaultOptions' => ["Cannot Set"],
+            'chromosomeOptions' => [0 => "No Group"] + LociGroup::orderBy('sort', 'desc')->pluck('id', 'name')->toArray(),
         ]);
     }
 
@@ -120,6 +122,7 @@ class GeneticsController extends Controller
         return view('admin.genetics.create_edit_loci', [
             'category' => $category,
             'defaultOptions' => $category->getDefaultOptions(),
+            'chromosomeOptions' => [0 => "No Group"] + LociGroup::orderBy('sort', 'desc')->pluck('name', 'id')->toArray(),
         ]);
     }
 
@@ -134,7 +137,8 @@ class GeneticsController extends Controller
     public function postCreateEditLoci(Request $request, GeneticsService $service, $id = null)
     {
         $data = $request->only([
-            'name', 'type', 'length', 'chromosome',
+            'name', 'type', 'length',
+            'loci_group_id',
             'default',
             'is_dominant', 'allele_name', 'modifier', 'allele_sort',
             'edit_allele_dominance', 'edit_allele_name', 'edit_allele_modifier',
@@ -409,5 +413,142 @@ class GeneticsController extends Controller
             if ($count >= $limit) return $children;
         }
         return $children;
+    }
+
+    /**********************************************************************************************
+
+        CHROMOSOMES / LOCI GROUPS
+
+    **********************************************************************************************/
+
+    /**
+     * Shows loci groups / chromosomes as a sorted index.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function getLociGroups(Request $request)
+    {
+        $query = LociGroup::query();
+        $data = $request->only(['name']);
+        if(isset($data['name'])) $query->where('name', 'LIKE', '%'.$data['name'].'%');
+        return view('admin.genetics.chromosomes.chromosomes', [
+            'chromosomes' => $query->orderBy('sort', 'desc')->paginate(20)->appends($request->query())
+        ]);
+    }
+
+    /**
+     * Shows the sortable list of loci groups / chromosomes.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function getSortLociGroups()
+    {
+        return view('admin.genetics.chromosomes.chromosome_sort', [
+            'chromosomes' => LociGroup::orderBy('sort', 'desc')->get()
+        ]);
+    }
+
+    /**
+     * Shows the create loci group / chromosome page.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function getCreateLociGroup()
+    {
+        return view('admin.genetics.chromosomes.create_edit_chromosome', [
+            'chromosome' => new LociGroup,
+        ]);
+    }
+
+    /**
+     * Shows the edit loci group / chromosome page.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function getEditLociGroup($id)
+    {
+        $chromosome = LociGroup::find($id);
+        if(!$chromosome) abort(404);
+        return view('admin.genetics.chromosomes.create_edit_chromosome', [
+            'chromosome' => $chromosome,
+        ]);
+    }
+
+    /**
+     * Gets the loci group / chromosome deletion modal.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function getDeleteLociGroup($id)
+    {
+        $chromosome = LociGroup::find($id);
+        return view('admin.genetics.chromosomes._delete_chromosome', [
+            'chromosome' => $chromosome,
+        ]);
+    }
+
+    /**
+     * Sorts loci groups / chromosomes.
+     *
+     * @param  \Illuminate\Http\Request     $request
+     * @param  App\Services\FeatureService  $service
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function postSortLociGroups(Request $request, GeneticsService $service)
+    {
+        if($service->sortLociGroup($request->get('sort'))) {
+            flash('Chromosome order updated successfully.')->success();
+        } else {
+            foreach($service->errors()->getMessages()['error'] as $error) flash($error)->error();
+        }
+        return redirect()->back();
+    }
+
+    /**
+     * Creates or edits a loci group / chromosome.
+     *
+     * @param  \Illuminate\Http\Request     $request
+     * @param  App\Services\FeatureService  $service
+     * @param  int|null                     $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function postCreateEditLociGroup(Request $request, GeneticsService $service, $id = null)
+    {
+        $data = $request->only([
+            'name',
+            'description',
+            'parsed_description',
+            'is_visible',
+        ]);
+        if ($id && $service->updateLociGroup(LociGroup::find($id), $data, Auth::user())) {
+            flash('Chromosome updated successfully.')->success();
+        } else if (!$id && $chromosome = $service->createLociGroup($data, Auth::user())) {
+            flash('Chromosome created successfully.')->success();
+            return redirect()->to('admin/genetics/chromosome/edit/'.$chromosome->id);
+        } else {
+            foreach($service->errors()->getMessages()['error'] as $error) flash($error)->error();
+        }
+        return redirect()->back();
+    }
+
+    /**
+     * Deletes a loci group / chromosome.
+     *
+     * @param  \Illuminate\Http\Request     $request
+     * @param  App\Services\FeatureService  $service
+     * @param  int|null                     $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function postDeleteLociGroup(Request $request, GeneticsService $service, $id)
+    {
+        if($id && $service->deleteLociGroup(LociGroup::find($id))) {
+            flash('Chromosome deleted successfully.')->success();
+        } else {
+            foreach($service->errors()->getMessages()['error'] as $error) flash($error)->error();
+        }
+        return redirect()->to('admin/genetics/chromosomes');
     }
 }

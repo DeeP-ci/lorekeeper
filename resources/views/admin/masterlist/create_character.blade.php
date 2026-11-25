@@ -246,6 +246,8 @@
         </span>
     </div>
 
+    <p class="alert alert-info">For chromosomally linked genes, note that the breeding roller cares about which order the genes are placed in. Chromosomally linked genes in the same column (left for matrilineal inheritance, right for patrilineal inheritance) will always pass together!</p>
+
     <div class="form-group">
         {!! Form::label('Genes') !!}
         <div id="geneList"></div>

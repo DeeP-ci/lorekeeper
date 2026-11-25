@@ -125,6 +125,7 @@ class CharacterGenome extends Model
             'gene_gradient_data' => [],
             'gene_numeric_data' => [],
         ];
+        $chromosomes = [];
         foreach (Loci::query()->orderBy('sort', 'desc')->get() as $loci)
         {
             if ($this->hasLocus($loci) || $sire->hasLocus($loci))
@@ -135,8 +136,15 @@ class CharacterGenome extends Model
 
                 if ($loci->type == "gene")
                 {
-                    array_push($genodata['gene_allele_id'], ($damGenes == null) ? $loci->getDefault()->id : $damGenes->random()->allele->id);
-                    array_push($genodata['gene_allele_id'], ($sireGenes == null) ? $loci->getDefault()->id : $sireGenes->random()->allele->id);
+                    $seed = null;
+                    if ($loci->chromosome != null)
+                    {
+                        if(!isset($chromosomes[$loci->chromosome->id])) $chromosomes[$loci->chromosome->id] = [ mt_rand(0, 1), mt_rand(0, 1) ];
+                        $seed = $chromosomes[$loci->chromosome->id];
+                    }
+                    if ($seed == null) $seed = [ mt_rand(0, 1), mt_rand(0, 1) ];
+                    array_push($genodata['gene_allele_id'], ($damGenes == null) ? $loci->getDefault()->id : ($seed[0] == 0 ? $damGenes->first() : $damGenes->last())->allele->id);
+                    array_push($genodata['gene_allele_id'], ($sireGenes == null) ? $loci->getDefault()->id : ($seed[1] == 0 ? $sireGenes->first() : $sireGenes->last())->allele->id);
                 }
                 else if ($loci->type == "gradient")
                 {
@@ -173,13 +181,27 @@ class CharacterGenome extends Model
     public function crossWith($sire)
     {
         $genes = [];
+        $chromosomes = [];
 
         // Go through each loci
         foreach (Loci::query()->orderBy('sort', 'desc')->get() as $loci)
         {
             if ($this->hasLocus($loci) || $sire->hasLocus($loci))
             {
-                $gene = $this->inheritGene($loci, $this->getGenes($loci), $sire->getGenes($loci));
+                $side = [0,0];
+                if($loci->type == 'gene' && $loci->chromosome != null)
+                {
+                    if (!isset($chromosomes[$loci->chromosome->id]))
+                    {
+                        $chromosomes[$loci->chromosome->id] = [ mt_rand(0, 1), mt_rand(0, 1) ];
+                    }
+                    $side = $chromosomes[$loci->chromosome->id];
+                }
+                else
+                {
+                    $side = [ mt_rand(0, 1), mt_rand(0, 1) ];
+                }
+                $gene = $this->inheritGene($loci, $this->getGenes($loci), $sire->getGenes($loci), $side);
                 if($gene !== null) array_push($genes, "<span class='text-monospace text-nowrap mx-1' data-toggle='tooltip' title='". $loci->name ."'>". $gene ."</span>");
             }
         }
@@ -195,18 +217,22 @@ class CharacterGenome extends Model
      * @param   Illuminate\Database\Eloquent\Collection  $sireGenes
      * @return  array
      */
-    private function inheritGene($loci, $damGenes, $sireGenes)
+    private function inheritGene($loci, $damGenes, $sireGenes, $side = [0,0])
     {
         if ($loci->type == "gene") {
             $alleles = "";
 
             // Matrilineal gene
             if ($damGenes == null) $alleles.= $loci->getDefault()->display_name;
-            else $alleles.= $damGenes->random()->allele->display_name;
+            else $alleles.= (
+                $side[0] == 0 ? $damGenes->first() : $damGenes->last()
+            )->allele->display_name;
 
             // Patrilineal gene
             if ($sireGenes == null) $alleles.= $loci->getDefault()->display_name;
-            else $alleles.= $sireGenes->random()->allele->display_name;
+            else $alleles.= (
+                $side[1] == 0 ? $sireGenes->first() : $sireGenes->last()
+            )->allele->display_name;
 
             return $alleles;
         } elseif ($loci->type == "gradient") {

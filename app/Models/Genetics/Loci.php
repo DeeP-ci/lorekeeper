@@ -18,7 +18,11 @@ class Loci extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'type', 'length', 'chromosome', 'sort',
+        'name',
+        'type',
+        'length',
+        'loci_group_id',
+        'sort',
         'default',
         'description',
         'parsed_description',
@@ -68,6 +72,14 @@ class Loci extends Model
     public function hiddenAlleles()
     {
         return $this->hasMany('App\Models\Genetics\LociAllele')->where('is_visible', 0)->orderBy('is_dominant', 'desc')->orderBy('sort', 'asc');
+    }
+
+    /**
+     * Gets the chromosome.
+     */
+    public function chromosome()
+    {
+        return $this->belongsTo('App\Models\Genetics\LociGroup', 'loci_group_id');
     }
 
     /**********************************************************************************************

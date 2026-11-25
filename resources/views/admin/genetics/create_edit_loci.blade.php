@@ -1,6 +1,6 @@
 @extends('admin.layout')
 
-@section('admin-title') Trait Categories @endsection
+@section('admin-title') {{ $category->id ? 'Edit' : 'Create' }} Gene Group @endsection
 
 @section('admin-content')
 {!! breadcrumbs(['Admin Panel' => 'admin', 'Genetics' => 'admin/genetics/genes', ($category->id ? 'Edit' : 'Create').' Gene Group' => $category->id ? 'admin/data/genetics/edit/'.$category->id : 'admin/data/genetics/create']) !!}
@@ -41,6 +41,12 @@
         <div class="form-group">
             {!! Form::label('default', 'Default Inheritance') . add_help("Used to determine what happens when one parent has this gene and the other doesn't. Can only be set after creation.") !!}
             {!! Form::select('default', $defaultOptions, $category->id ? $category->default : 0, ['class' => 'form-control', 'disabled' => $category->id == null]) !!}
+        </div>
+    </div>
+    <div class="col-12">
+        <div class="form-group">
+            {!! Form::label('loci_group_id', 'Chromosome Group') . add_help("Chromomosomee") !!}
+            {!! Form::select('loci_group_id', $chromosomeOptions, $category->id ? $category->loci_group_id : 0, ['class' => 'form-control', 'disabled' => $category->id == null]) !!}
         </div>
     </div>
 </div>

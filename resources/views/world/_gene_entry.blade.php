@@ -6,6 +6,13 @@
             @endif
             {!! $loci->displayName !!}
         </h3>
+        @if($loci->chromosome && ($loci->chromosome->is_visible || (Auth::check() && Auth::user()->hasPower('view_hidden_genetics'))))
+            <strong>Chromosome</strong>:
+            @if (!$loci->chromosome->is_visible)
+                <i class="fas fa-eye-slash"></i>
+            @endif
+            {!! $loci->chromosome->displayName !!}<br>
+        @endif
         @if ($loci->type == "gene")
             <strong>Type</strong>: Standard<br>
             <strong>Alleles</strong>:
@@ -23,7 +30,7 @@
             <strong>Range</strong>: 0-{{ $loci->length }}
         @endif
         <div class="world-entry-text mt-2">
-            {!! $loci->description !!}
+            {!! $loci->parsed_description !!}
         </div>
     </div>
 </div>
