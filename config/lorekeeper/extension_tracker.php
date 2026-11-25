@@ -7,7 +7,7 @@ return [
         'creators' => json_encode([
             'Pure09' => 'https://github.com/deep-ci/',
         ]),
-        'version' => '1.2.0',
+        'version' => '1.3.0',
     ],
 
     // FORMAT EXAMPLE.
